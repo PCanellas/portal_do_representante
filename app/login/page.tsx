@@ -1,0 +1,45 @@
+import Image from "next/image";
+import type { Metadata } from "next";
+import { LoginForm } from "./login-form";
+
+export const metadata: Metadata = { title: "Entrar" };
+
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  // No Next 16 searchParams e assincrono.
+  const params = await searchParams;
+  const proximo = typeof params.proximo === "string" ? params.proximo : undefined;
+
+  return (
+    <main className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-marca-navy px-5 py-10">
+      {/* halo de luz: a lampada da logo virando ambiente */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-40 left-1/2 size-[38rem] -translate-x-1/2 rounded-full bg-marca-dourado/12 blur-3xl"
+      />
+
+      <div className="relative mx-auto w-full max-w-sm">
+        <div className="mb-10 flex flex-col items-center text-center">
+          <Image
+            src="/logo-marca.png"
+            alt="Rogério Innecco Representações"
+            width={1073}
+            height={900}
+            priority
+            className="h-auto w-56 sm:w-64"
+          />
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/95 p-6 shadow-2xl shadow-black/40 backdrop-blur sm:p-8 dark:bg-card">
+          <div className="mb-6 space-y-1">
+            <h1 className="text-xl font-semibold tracking-tight">Entrar</h1>
+            <p className="text-sm text-muted-foreground">
+              Acesse para consultar preços e montar orçamentos.
+            </p>
+          </div>
+
+          <LoginForm proximo={proximo} />
+        </div>
+      </div>
+    </main>
+  );
+}
