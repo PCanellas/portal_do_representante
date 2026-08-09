@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
  * Navegacao principal no celular. Fica na base porque e onde o polegar
  * alcanca — ele usa o app em pe, com uma mao so, dentro da loja.
  *
- * A altura sai de --barra-recuo e --barra-respiro, declaradas no :root do
+ * A altura sai de --recuo-fundo e --barra-respiro, declaradas no :root do
  * globals.css com a explicacao de cada uma. Ficam la, e nao aqui, porque sao
  * o que se mexe para acertar a barra no aparelho — um lugar so, sem cacar
- * numero espalhado entre arquivo de estilo e de componente.
+ * numero espalhado entre arquivo de estilo e de componente. O recuo e o
+ * mesmo que a folha de baixo usa, para os dois respirarem igual.
  */
 export function BarraInferior() {
   const pathname = usePathname();
@@ -20,7 +21,7 @@ export function BarraInferior() {
   return (
     <nav
       className="z-40 shrink-0 border-t bg-background md:hidden"
-      style={{ paddingBottom: "var(--barra-recuo)" }}
+      style={{ paddingBottom: "var(--recuo-fundo)" }}
       aria-label="Navegação principal"
     >
       <div className="grid grid-cols-4">

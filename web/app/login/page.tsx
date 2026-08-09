@@ -5,11 +5,16 @@ import { LoginForm } from "./login-form";
 export const metadata: Metadata = { title: "Entrar" };
 
 /**
- * A tela e navy de ponta a ponta, entao a faixa que o sistema pinta no pe
- * tem que ser navy tambem — nos dois modos, porque a tela nao muda de cor
- * com o tema. Substitui so o themeColor; o resto do viewport vem da raiz.
+ * Cor da faixa que o sistema pinta atras do relogio no app instalado.
+ *
+ * Nao e o navy da marca: o halo dourado clareia o topo da tela, e navy puro
+ * criava emenda visivel. #1d2425 e o navy ja composto com o halo, medido
+ * simulando o desfoque de 64px na largura de um iPhone. Mexer no halo pede
+ * medir de novo.
+ *
+ * Substitui so o themeColor; o resto do viewport vem da raiz.
  */
-export const viewport: Viewport = { themeColor: "#00112A" };
+export const viewport: Viewport = { themeColor: "#1d2425" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // No Next 16 searchParams e assincrono.

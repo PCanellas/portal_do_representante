@@ -70,15 +70,15 @@
      Quem reserva esse espaco somos nos, no recheio do topo do cabecalho. */
   --safe-topo: env(safe-area-inset-top, 0px);
 
-  /* ---- Barra de navegacao de baixo: os dois numeros de ajuste ----
-     recuo   folga abaixo dos rotulos. Agora que o viewport chega na borda
-             fisica, o env() de baixo e a faixa da barra de gestos (34 no
-             iPhone) e os rotulos ficariam atras dela em 0. O teto de 8
-             pontos os afasta do fim sem gastar a faixa toda; o sistema
-             reserva o deslize, nao o toque. Mexer aqui sobe ou desce.
-     respiro folga acima e abaixo de cada item, o que da a altura da
-             barra. Menor = barra mais fina. */
-  --barra-recuo: min(env(safe-area-inset-bottom, 0px), 0.5rem);
+  /* ---- Os dois numeros de ajuste do pe da tela ----
+     recuo-fundo  folga entre o fim da tela e o que vem antes dele: vale
+                  para a barra de navegacao e para a folha que sobe. O
+                  env() e a faixa da barra de gestos (34 no iPhone) e o
+                  teto de 20 pontos evita gastar ela toda. Mexer aqui
+                  afasta ou aproxima os dois de uma vez.
+     barra-respiro  folga acima e abaixo de cada item da barra, o que da
+                  a altura dela. Menor = barra mais fina. */
+  --recuo-fundo: min(env(safe-area-inset-bottom, 0px), 1.25rem);
   --barra-respiro: 0.625rem;
 
   --marca-navy: oklch(0.1795 0.0578 254.37);
@@ -183,6 +183,13 @@
 html:has(main[data-tela="login"]),
 body:has(main[data-tela="login"]) {
   background-color: var(--marca-navy);
+}
+
+/* A folha que sobe de baixo encosta na borda da tela. Ganha o mesmo
+   respiro da barra de navegacao para os botoes nao ficarem rentes — e
+   para nao caírem atras da barra de gestos. */
+[data-slot="sheet-content"][data-side="bottom"] {
+  padding-bottom: var(--recuo-fundo);
 }
 
 @layer base {
