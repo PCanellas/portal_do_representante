@@ -27,7 +27,11 @@ export default async function Home() {
       .from("produtos")
       .select("id", { count: "exact", head: true })
       .eq("situacao", 1),
-    supabase.from("fabricantes").select("id, nome").eq("situacao", 1).order("nome"),
+    supabase
+      .from("fabricantes")
+      .select("id, nome")
+      .eq("situacao", 1)
+      .order("nome"),
   ]);
 
   const { data: representante } = await supabase
@@ -115,7 +119,10 @@ function AtalhoCard({
     <Link href={href}>
       <Card className="h-full flex-row items-center gap-3 p-4 transition-colors hover:border-marca-dourado/40 hover:bg-accent/40">
         <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-marca-dourado/15">
-          <Icone className="size-5 text-marca-azul dark:text-marca-dourado" aria-hidden />
+          <Icone
+            className="size-5 text-marca-azul dark:text-marca-dourado"
+            aria-hidden
+          />
         </div>
         <div className="min-w-0">
           <p className="font-medium">{titulo}</p>

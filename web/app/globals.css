@@ -154,6 +154,33 @@
   --sidebar-ring: oklch(0.8029 0.165 81.96);
 }
 
+/* ------------------------------------------------------------------
+   Altura da casca do app.
+
+   No navegador, 100dvh e a medida certa: acompanha a barra de endereco
+   aparecendo e sumindo.
+
+   Instalado na tela inicial e outra historia. Medido no iPhone: tela de
+   852, e o viewport devolve 793 — desconta a barra de status da altura,
+   mas nao da origem, entao a pagina comeca colada no relogio e sobram 59
+   pontos no pe da tela que `fixed inset-0` nao alcanca. 100lvh e a unica
+   medida que volta 852.
+
+   Por isso o lvh entra so em display-mode: standalone. Em aba de
+   navegador ele valeria a tela sem a barra de endereco, e a barra de
+   baixo iria parar atras dela.
+   ------------------------------------------------------------------ */
+
+.altura-casca {
+  height: 100dvh;
+}
+
+@media all and (display-mode: standalone) {
+  .altura-casca {
+    height: 100lvh;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

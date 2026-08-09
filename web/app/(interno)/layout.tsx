@@ -25,13 +25,11 @@ export default async function LayoutInterno({ children }: LayoutProps<"/">) {
   // rolando, o Android mostra e esconde as barras do sistema no meio do
   // gesto e os dois pareciam mudar de altura.
   //
-  // `fixed inset-0` em vez de `h-dvh` porque as duas medidas discordam no app
-  // instalado: com viewport-fit=cover a pagina pinta de borda a borda, mas
-  // 100dvh volta descontando as barras do sistema — e a barra de baixo
-  // parava antes do fim da tela, com a diferenca sobrando embaixo. `inset-0`
-  // nao pergunta altura nenhuma: manda ocupar da borda de cima a de baixo.
+  // Ancorada no topo e com altura propria em vez de `inset-0`: instalado no
+  // iPhone o viewport tem 793 numa tela de 852, entao `bottom: 0` parava 59
+  // pontos antes do fim. A regra de .altura-casca esta em globals.css.
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden">
+    <div className="altura-casca fixed inset-x-0 top-0 flex flex-col overflow-hidden">
       <Cabecalho nome={representante?.nome ?? "Representante"} aoSair={sair} />
 
       {/* min-h-0 e o que autoriza o item flex a encolher: sem isso ele adota
