@@ -70,6 +70,17 @@
      Quem reserva esse espaco somos nos, no recheio do topo do cabecalho. */
   --safe-topo: env(safe-area-inset-top, 0px);
 
+  /* ---- Barra de navegacao de baixo: os dois numeros de ajuste ----
+     recuo   folga abaixo dos rotulos. Em 0 eles ficam rentes ao fim da
+             area que da para desenhar. Nao encostam na borda fisica da
+             tela porque ainda ha a faixa de 59 pontos explicada la
+             embaixo — esses nao ha como usar.
+             Para afastar os rotulos do fim, subir daqui: 0.5rem, 0.75rem.
+     respiro folga acima e abaixo de cada item, o que da a altura da
+             barra. Menor = barra mais fina. */
+  --barra-recuo: 0px;
+  --barra-respiro: 0.625rem;
+
   --marca-navy: oklch(0.1795 0.0578 254.37);
   --marca-dourado: oklch(0.8029 0.165 81.96);
   --marca-azul: oklch(0.4202 0.1374 257.71);
@@ -155,30 +166,25 @@
 }
 
 /* ------------------------------------------------------------------
-   Altura da casca do app.
+   A faixa no pe da tela, e por que ela fica.
 
-   No navegador, 100dvh e a medida certa: acompanha a barra de endereco
-   aparecendo e sumindo.
+   Instalado na tela inicial, o iPhone da um viewport de 793 numa tela de
+   852: desconta a barra de status da altura, mas nao da origem. A pagina
+   nasce colada no relogio e sobram 59 pontos embaixo.
 
-   Instalado na tela inicial e outra historia. Medido no iPhone: tela de
-   852, e o viewport devolve 793 — desconta a barra de status da altura,
-   mas nao da origem, entao a pagina comeca colada no relogio e sobram 59
-   pontos no pe da tela que `fixed inset-0` nao alcanca. 100lvh e a unica
-   medida que volta 852.
+   Ja tentei alcanca-los com 100lvh, que devolve os 852 certinho. Nao
+   adianta: o sistema pinta aquela faixa com a cor de fundo do documento,
+   mas nao desenha conteudo la. A barra desceu e os rotulos sumiram
+   cortados. Nao ha CSS que ponha conteudo ali.
 
-   Por isso o lvh entra so em display-mode: standalone. Em aba de
-   navegador ele valeria a tela sem a barra de endereco, e a barra de
-   baixo iria parar atras dela.
+   Entao a faixa fica, e o jeito e ela ter a cor certa. Nas telas internas
+   ja tem, porque o fundo do documento e o mesmo da barra de baixo. No
+   login, que e navy de ponta a ponta, o documento precisa virar navy
+   junto — senao aparece um rodape branco embaixo da tela escura.
    ------------------------------------------------------------------ */
 
-.altura-casca {
-  height: 100dvh;
-}
-
-@media all and (display-mode: standalone) {
-  .altura-casca {
-    height: 100lvh;
-  }
+html:has(main[data-tela="login"]) {
+  background-color: var(--marca-navy);
 }
 
 @layer base {

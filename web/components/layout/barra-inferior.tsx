@@ -9,11 +9,10 @@ import { cn } from "@/lib/utils";
  * Navegacao principal no celular. Fica na base porque e onde o polegar
  * alcanca — ele usa o app em pe, com uma mao so, dentro da loja.
  *
- * O recuo de baixo segue o sistema, mas com teto de 12 pontos. O iPhone pede
- * 34 — a faixa inteira da barra de gestos —, e com a casca ja alcancando o
- * fim da tela isso deixava a barra visivelmente alta. Os 12 impedem que os
- * rotulos encostem na borda sem gastar a faixa toda; o toque continua valendo
- * ali, o que o sistema reserva e o deslize de baixo para cima.
+ * A altura sai de --barra-recuo e --barra-respiro, declaradas no :root do
+ * globals.css com a explicacao de cada uma. Ficam la, e nao aqui, porque sao
+ * o que se mexe para acertar a barra no aparelho — um lugar so, sem cacar
+ * numero espalhado entre arquivo de estilo e de componente.
  */
 export function BarraInferior() {
   const pathname = usePathname();
@@ -21,9 +20,7 @@ export function BarraInferior() {
   return (
     <nav
       className="z-40 shrink-0 border-t bg-background md:hidden"
-      style={{
-        paddingBottom: "min(env(safe-area-inset-bottom, 0px), 0.75rem)",
-      }}
+      style={{ paddingBottom: "var(--barra-recuo)" }}
       aria-label="Navegação principal"
     >
       <div className="grid grid-cols-4">
@@ -35,7 +32,7 @@ export function BarraInferior() {
               href={href}
               aria-current={ativo ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+                "flex flex-col items-center gap-1 py-[var(--barra-respiro)] text-[11px] font-medium transition-colors",
                 ativo
                   ? "text-marca-azul dark:text-marca-dourado"
                   : "text-muted-foreground",

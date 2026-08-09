@@ -25,11 +25,12 @@ export default async function LayoutInterno({ children }: LayoutProps<"/">) {
   // rolando, o Android mostra e esconde as barras do sistema no meio do
   // gesto e os dois pareciam mudar de altura.
   //
-  // Ancorada no topo e com altura propria em vez de `inset-0`: instalado no
-  // iPhone o viewport tem 793 numa tela de 852, entao `bottom: 0` parava 59
-  // pontos antes do fim. A regra de .altura-casca esta em globals.css.
+  // `inset-0` prende a casca nas quatro bordas do viewport. Instalado no
+  // iPhone o viewport tem 793 numa tela de 852 e sobra uma faixa de 59
+  // pontos no pe — inalcancavel, o sistema so pinta a cor de fundo ali. O
+  // porque esta anotado em globals.css, junto da tentativa que falhou.
   return (
-    <div className="altura-casca fixed inset-x-0 top-0 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Cabecalho nome={representante?.nome ?? "Representante"} aoSair={sair} />
 
       {/* min-h-0 e o que autoriza o item flex a encolher: sem isso ele adota

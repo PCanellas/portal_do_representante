@@ -11,7 +11,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     typeof params.proximo === "string" ? params.proximo : undefined;
 
   return (
-    <main className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-marca-navy px-5 py-10 tela-baixa:py-6">
+    // data-tela pinta o documento de navy junto (regra em globals.css): sem
+    // isso o app instalado mostra uma faixa branca no pe da tela escura
+    <main
+      data-tela="login"
+      className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-marca-navy px-5 py-10 tela-baixa:py-6"
+    >
       {/* halo de luz: a lampada da logo virando ambiente */}
       <div
         aria-hidden
