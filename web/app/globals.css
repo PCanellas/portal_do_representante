@@ -71,14 +71,14 @@
   --safe-topo: env(safe-area-inset-top, 0px);
 
   /* ---- Barra de navegacao de baixo: os dois numeros de ajuste ----
-     recuo   folga abaixo dos rotulos. Em 0 eles ficam rentes ao fim da
-             area que da para desenhar. Nao encostam na borda fisica da
-             tela porque ainda ha a faixa de 59 pontos explicada la
-             embaixo — esses nao ha como usar.
-             Para afastar os rotulos do fim, subir daqui: 0.5rem, 0.75rem.
+     recuo   folga abaixo dos rotulos. Agora que o viewport chega na borda
+             fisica, o env() de baixo e a faixa da barra de gestos (34 no
+             iPhone) e os rotulos ficariam atras dela em 0. O teto de 8
+             pontos os afasta do fim sem gastar a faixa toda; o sistema
+             reserva o deslize, nao o toque. Mexer aqui sobe ou desce.
      respiro folga acima e abaixo de cada item, o que da a altura da
              barra. Menor = barra mais fina. */
-  --barra-recuo: 0px;
+  --barra-recuo: min(env(safe-area-inset-bottom, 0px), 0.5rem);
   --barra-respiro: 0.625rem;
 
   --marca-navy: oklch(0.1795 0.0578 254.37);
@@ -166,21 +166,18 @@
 }
 
 /* ------------------------------------------------------------------
-   A faixa no pe da tela, e por que ela fica.
+   Historico, para ninguem repetir o caminho errado.
 
-   Instalado na tela inicial, o iPhone da um viewport de 793 numa tela de
-   852: desconta a barra de status da altura, mas nao da origem. A pagina
-   nasce colada no relogio e sobram 59 pontos embaixo.
+   Com apple-mobile-web-app-status-bar-style: black-translucent, o iPhone
+   entregava um viewport de 793 numa tela de 852: descontava a barra de
+   status da altura, mas nao da origem. Sobravam 59 pontos no pe que
+   recebiam cor e nao recebiam desenho — tentei alcanca-los com 100lvh,
+   que devolve os 852 certinho, e os rotulos da barra vieram cortados.
 
-   Ja tentei alcanca-los com 100lvh, que devolve os 852 certinho. Nao
-   adianta: o sistema pinta aquela faixa com a cor de fundo do documento,
-   mas nao desenha conteudo la. A barra desceu e os rotulos sumiram
-   cortados. Nao ha CSS que ponha conteudo ali.
-
-   Entao a faixa fica, e o jeito e ela ter a cor certa. Nas telas internas
-   ja tem, porque o fundo do documento e o mesmo da barra de baixo. No
-   login, que e navy de ponta a ponta, o documento precisa virar navy
-   junto — senao aparece um rodape branco embaixo da tela escura.
+   O status bar style passou para "black" (ver layout.tsx) e o viewport
+   passou a ir ate a borda de baixo. Estas duas regras ficam porque a cor
+   de fundo do documento ainda aparece atras da tela de login enquanto ela
+   monta, e branco embaixo de navy salta aos olhos.
    ------------------------------------------------------------------ */
 
 html:has(main[data-tela="login"]),

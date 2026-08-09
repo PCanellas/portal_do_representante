@@ -28,7 +28,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Innecco",
-    statusBarStyle: "black-translucent",
+    // "black" e nao "black-translucent" de proposito. O translucent entrega a
+    // tela toda para a pagina, mas entrega torto: origem no topo e altura
+    // descontando a barra de status — 793 numa tela de 852. Os 59 pontos que
+    // sobram no pe nao recebem desenho, so cor, entao a barra de baixo nunca
+    // encostava no fim. Com "black" o sistema encaixa a pagina abaixo da
+    // barra de status e o viewport vai ate a borda de baixo de verdade.
+    // Custa o navy atras do relogio: aquela faixa passa a ser preta.
+    statusBarStyle: "black",
   },
 };
 
