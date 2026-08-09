@@ -198,7 +198,7 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
       </div>
 
       {/* acompanha a rolagem: o total e o botao ficam sempre a mao */}
-      <div className="sticky top-16 z-30 -mx-4 flex items-center justify-between gap-3 border-b bg-background/95 px-4 py-2.5 backdrop-blur">
+      <div className="sticky top-[var(--altura-cabecalho)] z-30 -mx-4 flex items-center justify-between gap-3 border-b bg-background/95 px-4 py-2.5 backdrop-blur">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">
             {carrinho.itens.length}{" "}

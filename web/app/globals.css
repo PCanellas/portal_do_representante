@@ -60,6 +60,13 @@
    ------------------------------------------------------------------ */
 
 :root {
+  /* Instalado na tela inicial, o app roda em tela cheia e o relogio do
+     celular fica POR CIMA do conteudo — e o que viewport-fit=cover pede.
+     Quem reserva esse espaco somos nos: o cabecalho ganha esta faixa de
+     recheio no topo, e as barras que grudam abaixo dele descem junto. */
+  --safe-topo: env(safe-area-inset-top, 0px);
+  --altura-cabecalho: calc(4rem + var(--safe-topo));
+
   --marca-navy: oklch(0.1795 0.0578 254.37);
   --marca-dourado: oklch(0.8029 0.165 81.96);
   --marca-azul: oklch(0.4202 0.1374 257.71);

@@ -43,14 +43,23 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * Sem altura declarada no html e no body, de proposito.
+ *
+ * `h-full` no html resolve contra o viewport grande — o de barra de endereco
+ * escondida —, enquanto cada tela usa `min-h-dvh`, que e o viewport de agora.
+ * No celular as duas medidas discordam pela altura da barra, e sobra uma
+ * rolagem que nao corresponde a conteudo nenhum. Quem manda na altura passa
+ * a ser o container de cada tela, que ja declarava `min-h-dvh`.
+ */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${montserrat.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${montserrat.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body>
         <Providers>{children}</Providers>
         <Toaster position="top-center" richColors />
       </body>
