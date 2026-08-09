@@ -1,8 +1,15 @@
 import Image from "next/image";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Entrar" };
+
+/**
+ * A tela e navy de ponta a ponta, entao a faixa que o sistema pinta no pe
+ * tem que ser navy tambem — nos dois modos, porque a tela nao muda de cor
+ * com o tema. Substitui so o themeColor; o resto do viewport vem da raiz.
+ */
+export const viewport: Viewport = { themeColor: "#00112A" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // No Next 16 searchParams e assincrono.

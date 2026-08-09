@@ -33,8 +33,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Instalado no iPhone, e o theme-color que pinta a faixa fora da pagina no
+  // pe da tela — nao o fundo do documento. Tem que ser a cor exata de
+  // --background, senao a faixa aparece: em #ffffff ela saia branca sobre o
+  // cinza-claro do app. A tela de login declara a sua, que e navy.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: light)", color: "#f9fafc" },
     { media: "(prefers-color-scheme: dark)", color: "#00112A" },
   ],
   // permite ampliar: acessibilidade importa mais que travar o layout
