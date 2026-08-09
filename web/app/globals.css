@@ -183,7 +183,8 @@
    junto — senao aparece um rodape branco embaixo da tela escura.
    ------------------------------------------------------------------ */
 
-html:has(main[data-tela="login"]) {
+html:has(main[data-tela="login"]),
+body:has(main[data-tela="login"]) {
   background-color: var(--marca-navy);
 }
 
