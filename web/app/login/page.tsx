@@ -7,10 +7,11 @@ export const metadata: Metadata = { title: "Entrar" };
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // No Next 16 searchParams e assincrono.
   const params = await searchParams;
-  const proximo = typeof params.proximo === "string" ? params.proximo : undefined;
+  const proximo =
+    typeof params.proximo === "string" ? params.proximo : undefined;
 
   return (
-    <main className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-marca-navy px-5 py-10">
+    <main className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-marca-navy px-5 py-10 tela-baixa:py-6">
       {/* halo de luz: a lampada da logo virando ambiente */}
       <div
         aria-hidden
@@ -18,14 +19,14 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       />
 
       <div className="relative mx-auto w-full max-w-sm">
-        <div className="mb-10 flex flex-col items-center text-center">
+        <div className="mb-10 flex flex-col items-center text-center tela-baixa:mb-6">
           <Image
             src="/logo-marca.png"
             alt="Rogério Innecco Representações"
             width={1073}
             height={900}
             priority
-            className="h-auto w-56 sm:w-64"
+            className="h-auto w-56 tela-baixa:w-40"
           />
         </div>
 

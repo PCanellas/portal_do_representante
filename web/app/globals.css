@@ -4,6 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Tela baixa, nao tela estreita: num notebook de 1366x768 sobram ~640px
+   depois da barra do navegador, e o login precisava de 713. As telas do
+   celular sao altas e nao entram aqui. */
+@custom-variant tela-baixa (@media (height <= 45rem));
+
 @theme inline {
   --color-marca-navy: var(--marca-navy);
   --color-marca-dourado: var(--marca-dourado);
@@ -62,10 +67,8 @@
 :root {
   /* Instalado na tela inicial, o app roda em tela cheia e o relogio do
      celular fica POR CIMA do conteudo — e o que viewport-fit=cover pede.
-     Quem reserva esse espaco somos nos: o cabecalho ganha esta faixa de
-     recheio no topo, e as barras que grudam abaixo dele descem junto. */
+     Quem reserva esse espaco somos nos, no recheio do topo do cabecalho. */
   --safe-topo: env(safe-area-inset-top, 0px);
-  --altura-cabecalho: calc(4rem + var(--safe-topo));
 
   --marca-navy: oklch(0.1795 0.0578 254.37);
   --marca-dourado: oklch(0.8029 0.165 81.96);
@@ -160,8 +163,12 @@
   }
   html {
     @apply font-sans;
-    /* evita zoom involuntario no iOS ao focar campo e respeita a area segura */
+    /* evita zoom involuntario no iOS ao focar campo */
     -webkit-text-size-adjust: 100%;
+    /* sem puxar-para-recarregar nem efeito elastico no fim da lista: as
+       telas internas tem altura travada e quem rola e o miolo. Recarregar
+       tem botao proprio no cabecalho. */
+    overscroll-behavior: none;
   }
   /* alvos de toque confortaveis: ele usa isso em pe, dentro da loja */
   @media (pointer: coarse) {

@@ -14,7 +14,7 @@ export function BarraInferior() {
 
   return (
     <nav
-      className="sticky bottom-0 z-40 border-t bg-background/95 backdrop-blur md:hidden"
+      className="z-40 shrink-0 border-t bg-background md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Navegação principal"
     >

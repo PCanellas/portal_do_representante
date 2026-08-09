@@ -26,10 +26,12 @@ export function Cabecalho({ nome, aoSair }: Props) {
 
   const primeiroNome = nome.split(" ")[0] ?? "";
 
-  // O recheio no topo faz o navy pintar atras da barra de status enquanto a
-  // linha de conteudo comeca abaixo dela — senao a logo fica sob o relogio.
+  // Fora da area que rola, entao nao precisa de sticky: shrink-0 basta para
+  // nao ser espremido. O recheio no topo faz o navy pintar atras da barra de
+  // status enquanto a linha de conteudo comeca abaixo dela — senao a logo
+  // fica sob o relogio.
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-marca-navy pt-[var(--safe-topo)] text-white">
+    <header className="z-40 shrink-0 border-b border-white/10 bg-marca-navy pt-[var(--safe-topo)] text-white">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
         <Link href="/home" className="flex shrink-0 items-center gap-2.5">
           <Image

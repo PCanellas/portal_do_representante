@@ -79,8 +79,9 @@ export function BuscaProdutos() {
 
   return (
     <div className="space-y-4">
-      {/* a barra acompanha a rolagem: ele refina a busca olhando o resultado */}
-      <div className="sticky top-[var(--altura-cabecalho)] z-30 -mx-4 space-y-3 border-b bg-background/95 px-4 pt-1 pb-3 backdrop-blur">
+      {/* a barra acompanha a rolagem: ele refina a busca olhando o resultado.
+          top-0 e relativo ao miolo que rola, que ja comeca sob o cabecalho */}
+      <div className="sticky top-0 z-30 -mx-4 space-y-3 border-b bg-background/95 px-4 pt-1 pb-3 backdrop-blur">
         <div className="relative">
           <Search
             className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
