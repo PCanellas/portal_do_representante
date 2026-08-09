@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     // fixo: e a identidade do app para o sistema, mesmo que start_url mude
     id: "/",
-    name: "Innecco Representações",
-    short_name: "Innecco",
+    name: "RI Representações",
+    short_name: "RI",
     description: "Consulta de preços e orçamentos — soluções em iluminação.",
     lang: "pt-BR",
     dir: "ltr",
