@@ -2,23 +2,60 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CloudOff, RefreshCw, Search, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CloudOff, Pencil, RefreshCw, Search, X } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { SessaoExpirada, useCatalogo } from "@/lib/use-catalogo";
+import {
+  CHAVE_CATALOGO,
+  SessaoExpirada,
+  useCatalogo,
+} from "@/lib/use-catalogo";
 import { useBuscaProdutos } from "@/lib/use-busca-produtos";
-import { formatarPreco, type Produto } from "@/lib/catalogo";
+import { formatarPreco, type Catalogo, type Produto } from "@/lib/catalogo";
 import { cn } from "@/lib/utils";
+import { FormularioProduto } from "./formulario-produto";
 
 const MAX_VISIVEL = 60;
 
 export function BuscaProdutos() {
-  const { data, isLoading, isError, isFetching, error, refetch } = useCatalogo();
+  const { data, isLoading, isError, isFetching, error, refetch } =
+    useCatalogo();
   const [termo, setTermo] = useState("");
   const [fabricante, setFabricante] = useState<string | null>(null);
+  const [emEdicao, setEmEdicao] = useState<Produto | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  /**
+   * Troca so o produto editado no catalogo guardado no aparelho.
+   *
+   * Rebaixar o catalogo inteiro a cada correcao seriam 1.704 produtos pela
+   * rede para mudar uma linha. O que a action devolve ja veio do banco,
+   * entao e a mesma verdade, sem a viagem.
+   */
+  function atualizarCache(atualizado: Produto) {
+    queryClient.setQueryData<Catalogo>(CHAVE_CATALOGO, (atual) =>
+      atual
+        ? {
+            ...atual,
+            produtos: atual.produtos.map((p) =>
+              p.id === atualizado.id ? atualizado : p,
+            ),
+          }
+        : atual,
+    );
+    setEmEdicao(null);
+  }
 
   // sessao caiu com o app aberto: volta para o login preservando o destino
   useEffect(() => {
@@ -126,11 +163,42 @@ export function BuscaProdutos() {
                 key={p.id}
                 produto={p}
                 fabricante={nomeFabricante(p.id_fabricante)}
+                aoEditar={() => setEmEdicao(p)}
               />
             ))}
           </ul>
         </>
       )}
+
+      {/* `key` remonta o formulario a cada abertura: sem isso ele guardaria
+          os campos do produto anterior */}
+      <Sheet
+        open={emEdicao !== null}
+        onOpenChange={(aberto) => !aberto && setEmEdicao(null)}
+      >
+        <SheetContent
+          side="bottom"
+          className="max-h-[92dvh]! overflow-y-auto rounded-t-2xl sm:max-w-none"
+        >
+          <SheetHeader>
+            <SheetTitle>Editar produto</SheetTitle>
+            <SheetDescription>
+              Para corrigir a carga, ajustar um preço ou marcar em falta.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            {emEdicao ? (
+              <FormularioProduto
+                key={emEdicao.id}
+                produto={emEdicao}
+                fabricante={nomeFabricante(emEdicao.id_fabricante)}
+                aoSalvar={atualizarCache}
+                aoCancelar={() => setEmEdicao(null)}
+              />
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -164,52 +232,74 @@ function Chip({
 function CartaoProduto({
   produto,
   fabricante,
+  aoEditar,
 }: {
   produto: Produto;
   fabricante: string;
+  aoEditar: () => void;
 }) {
   const semPreco = produto.preco_unitario === 0;
+  const emFalta = produto.situacao === 0;
 
   return (
-    <li className="rounded-xl border bg-card p-3.5 transition-colors hover:border-marca-dourado/40">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm leading-snug font-medium">
-            {produto.descricao}
+    <li
+      className={cn(
+        "flex items-start gap-2 rounded-xl border p-3.5 transition-colors",
+        emFalta
+          ? "border-dashed bg-muted/40"
+          : "bg-card hover:border-marca-dourado/40",
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <p className="text-sm leading-snug font-medium">{produto.descricao}</p>
+        {produto.variante ? (
+          <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
+            {produto.variante}
           </p>
-          {produto.variante ? (
-            <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
-              {produto.variante}
-            </p>
-          ) : null}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="font-mono text-xs text-muted-foreground">
-              {produto.referencia}
-            </span>
-            <span className="text-xs text-muted-foreground">·</span>
-            <span className="text-xs text-muted-foreground">{fabricante}</span>
-          </div>
-        </div>
-
-        <div className="shrink-0 text-right">
-          {semPreco ? (
-            <Badge variant="secondary" className="text-[11px]">
-              Sem preço
+        ) : null}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-mono text-xs text-muted-foreground">
+            {produto.referencia}
+          </span>
+          <span className="text-xs text-muted-foreground">·</span>
+          <span className="text-xs text-muted-foreground">{fabricante}</span>
+          {emFalta ? (
+            <Badge variant="destructive" className="text-[11px]">
+              Em falta
             </Badge>
-          ) : (
-            <>
-              <p className="text-base leading-tight font-semibold tabular-nums">
-                {formatarPreco(produto.preco_unitario)}
-              </p>
-              {produto.porcentagem_imposto > 0 ? (
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  +{produto.porcentagem_imposto.toLocaleString("pt-BR")}% imp.
-                </p>
-              ) : null}
-            </>
-          )}
+          ) : null}
         </div>
       </div>
+
+      <div className="shrink-0 text-right">
+        {semPreco ? (
+          <Badge variant="secondary" className="text-[11px]">
+            Sem preço
+          </Badge>
+        ) : (
+          <>
+            <p className="text-base leading-tight font-semibold tabular-nums">
+              {formatarPreco(produto.preco_unitario)}
+            </p>
+            {produto.porcentagem_imposto > 0 ? (
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                +{produto.porcentagem_imposto.toLocaleString("pt-BR")}% imp.
+              </p>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        title="Editar produto"
+        onClick={aoEditar}
+        className="shrink-0"
+      >
+        <Pencil className="size-4" aria-hidden />
+        <span className="sr-only">Editar {produto.descricao}</span>
+      </Button>
     </li>
   );
 }

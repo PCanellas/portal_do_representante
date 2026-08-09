@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CloudOff, Plus, Search, TriangleAlert, X } from "lucide-react";
+import {
+  CloudOff,
+  PackageX,
+  Plus,
+  Search,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -52,19 +59,17 @@ export function SeletorProdutos({ aberto, aoMudarAberto }: Props) {
     [itens],
   );
 
-  // A empresa ja foi escolhida na tela do orcamento: aqui a lista mostra
-  // so o que pode de fato entrar neste orcamento.
-  const disponiveis = useMemo(() => {
-    const todos = data?.produtos ?? [];
-    return todos.filter(
-      (p) =>
-        // inativo nao entra em orcamento — e a regra combinada para "sem
-        // estoque" ou "fora de linha"
-        p.situacao === 1 && p.id_fabricante === idFabricante,
-    );
-  }, [data, idFabricante]);
+  // A empresa ja foi escolhida na tela do orcamento: a lista e so dela.
+  // Produto em falta continua aparecendo, bloqueado — some da lista ele
+  // pareceria nao existir, e a busca seria feita de novo achando que foi
+  // erro de digitacao.
+  const daEmpresa = useMemo(
+    () =>
+      (data?.produtos ?? []).filter((p) => p.id_fabricante === idFabricante),
+    [data, idFabricante],
+  );
 
-  const resultados = useBuscaProdutos(disponiveis, termo);
+  const resultados = useBuscaProdutos(daEmpresa, termo);
 
   const nomeFabricante =
     data?.fabricantes.find((f) => f.id === idFabricante)?.nome ?? null;
@@ -175,17 +180,21 @@ function LinhaProduto({
   aoAdicionar: () => void;
 }) {
   const semPreco = produto.preco_unitario === 0;
+  const emFalta = produto.situacao !== 1;
 
   return (
     <li>
       <button
         type="button"
         onClick={aoAdicionar}
+        disabled={emFalta}
         className={cn(
           "flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-colors",
-          noOrcamento
-            ? "border-marca-dourado/60 bg-marca-dourado/5"
-            : "bg-card hover:bg-accent/40",
+          emFalta
+            ? "border-dashed bg-muted/40 opacity-70"
+            : noOrcamento
+              ? "border-marca-dourado/60 bg-marca-dourado/5"
+              : "bg-card hover:bg-accent/40",
         )}
       >
         <div className="min-w-0 flex-1">
@@ -216,11 +225,23 @@ function LinhaProduto({
                 +{produto.porcentagem_imposto.toLocaleString("pt-BR")}% imp.
               </span>
             ) : null}
+            {emFalta ? (
+              <Badge variant="destructive" className="text-[11px]">
+                Em falta
+              </Badge>
+            ) : null}
           </div>
         </div>
 
         <div className="shrink-0">
-          {noOrcamento ? (
+          {emFalta ? (
+            <span
+              aria-hidden
+              className="grid size-9 place-items-center rounded-lg bg-muted text-muted-foreground"
+            >
+              <PackageX className="size-5" />
+            </span>
+          ) : noOrcamento ? (
             <span className="grid size-9 place-items-center rounded-lg bg-marca-dourado text-sm font-semibold text-marca-navy tabular-nums">
               {formatarQuantidade(noOrcamento)}
             </span>
@@ -233,10 +254,13 @@ function LinhaProduto({
             </span>
           )}
           <span className="sr-only">
-            Adicionar {produto.descricao}
-            {noOrcamento
-              ? ` (${formatarQuantidade(noOrcamento)} no orçamento)`
-              : ""}
+            {emFalta
+              ? `${produto.descricao} está em falta e não pode entrar no orçamento`
+              : `Adicionar ${produto.descricao}${
+                  noOrcamento
+                    ? ` (${formatarQuantidade(noOrcamento)} no orçamento)`
+                    : ""
+                }`}
           </span>
         </div>
       </button>
