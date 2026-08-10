@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { WifiOff } from "lucide-react";
 import { BuscaProdutos } from "../(interno)/produtos/busca-produtos";
+import { BotaoTentarNovamente } from "./botao-tentar-novamente";
 
 export const metadata: Metadata = { title: "Sem conexão" };
 
@@ -38,10 +39,13 @@ export default function OfflinePage() {
         </div>
       </div>
 
-      <p className="rounded-xl border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
-        Preço, ficha técnica e código continuam disponíveis. Orçamento e edição
-        de produto voltam quando o sinal voltar.
-      </p>
+      <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Preço, ficha técnica e código continuam disponíveis. Orçamento e
+          edição de produto voltam quando o sinal voltar.
+        </p>
+        <BotaoTentarNovamente />
+      </div>
 
       <BuscaProdutos somenteLeitura />
     </main>

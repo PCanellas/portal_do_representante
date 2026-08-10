@@ -5,14 +5,16 @@ import { useEffect } from "react";
 /**
  * Liga o service worker e pede que o navegador nao descarte o que guardamos.
  *
- * O pedido de armazenamento durável importa mais do que parece: sem ele o
- * navegador pode apagar o catalogo e o rascunho quando o aparelho ficar sem
- * espaco, e o momento em que isso doeria e exatamente o que este trabalho
- * todo existe para cobrir — dentro da loja, sem sinal. Instalado na tela
- * inicial, o pedido costuma ser aceito sem perguntar nada.
+ * O service worker existe para uma coisa so: abrir o app sem sinal na tela
+ * /offline, em vez da pagina de erro do navegador. O que ele nao faz esta
+ * anotado no proprio public/sw.js.
  *
- * Nada aqui e obrigatorio para o app funcionar: navegador sem suporte, ou
- * servido sem HTTPS, simplesmente segue online como antes.
+ * O armazenamento duravel vale por si, com ou sem service worker: sem o
+ * pedido, o navegador pode apagar o catalogo e o rascunho quando o aparelho
+ * ficar sem espaco — e o momento em que isso doeria e exatamente o que este
+ * trabalho existe para cobrir.
+ *
+ * Nada aqui e obrigatorio: navegador sem suporte segue como antes.
  */
 export function RegistrarServiceWorker() {
   useEffect(() => {
@@ -24,25 +26,19 @@ export function RegistrarServiceWorker() {
 
     // navigator.serviceWorker so existe em contexto seguro: HTTPS ou
     // localhost. Aberto pelo IP da rede local (http://192.168.x.x) nao ha o
-    // que registrar, e o app segue online, sem modo offline.
-    if (!("serviceWorker" in navigator)) return;
+    // que registrar, e o app segue online, sem a tela de sem-sinal.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((erro) => {
+        // falhar aqui custa a tela offline, nao o app: registra e segue
+        console.error("[sw] registro falhou", erro);
+      });
+    }
 
-    navigator.serviceWorker.register("/sw.js").catch((erro) => {
-      // falhar aqui custa o modo offline, nao o app: registra e segue
-      console.error("[sw] registro falhou", erro);
-    });
-
+    // Independente do service worker: pede ao navegador que nao descarte o
+    // catalogo e o rascunho quando o aparelho ficar sem espaco. Instalado na
+    // tela inicial, costuma ser aceito sem perguntar nada.
     void navigator.storage?.persist?.();
   }, []);
 
   return null;
-}
-
-/**
- * Apaga a casca guardada. Chamado ao sair da conta: o HTML em cache foi
- * renderizado com a sessao dentro e traz o nome dele no cabecalho.
- */
-export async function limparCascaOffline() {
-  const registro = await navigator.serviceWorker?.ready?.catch(() => null);
-  registro?.active?.postMessage("limpar-casca");
 }

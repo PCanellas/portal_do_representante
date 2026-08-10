@@ -1,34 +1,35 @@
 /**
  * Service worker do app.
  *
- * Existe por um motivo so: sem ele, abrir o app sem sinal nao abre nada. O
- * navegador pede o HTML ao servidor, nao recebe, e mostra a tela de erro —
- * mesmo com os 2.693 produtos ja gravados no aparelho, atras de uma porta
- * trancada. Aqui a porta passa a abrir com o que ja esta guardado.
+ * Faz uma coisa so: quando o app e aberto sem sinal, entrega a tela /offline
+ * em vez da pagina de erro do navegador. Sem ele o navegador precisa da rede
+ * para receber o HTML, e nao ha app nenhum para mostrar.
  *
- * Escrito a mao, sem Workbox: sao tres regras de cache, e uma dependencia de
- * build para gerar isto custaria mais para entender do que o arquivo inteiro.
+ * A versao anterior tentava mais e quebrou o app em producao. Dois erros,
+ * anotados para nao se repetirem:
  *
- * As regras:
- *   navegacao      rede primeiro, cache depois, /offline como ultimo recurso.
- *                  Rede primeiro porque preco desatualizado e pior do que
- *                  esperar meio segundo.
- *   /_next/static  cache primeiro. O nome do arquivo carrega o hash do
- *                  conteudo: mudou o conteudo, mudou a URL, nao ha o que
- *                  invalidar.
- *   fontes         cache primeiro, mesmo motivo.
+ * 1. Ela guardava as paginas internas e, quando a rede falhava, devolvia o
+ *    HTML de /offline mantendo a URL pedida. O navegador recebia o conteudo
+ *    de uma pagina com o endereco de outra, o Next hidratava com a arvore
+ *    errada e o roteador estourava. Agora e um REDIRECIONAMENTO: o endereco
+ *    passa a ser /offline de verdade, e conteudo e URL voltam a bater.
  *
- * O resto passa direto. A API do catalogo em especial: quem guarda aquilo e
- * o React Query, no localStorage, e duas copias do mesmo dado divergiriam.
+ * 2. Ela cacheava HTML de pagina autenticada, o que trazia junto a pergunta
+ *    de quando invalidar e o risco de servir a tela de um usuario que ja
+ *    saiu. Aqui nao se guarda pagina interna nenhuma — offline o app leva
+ *    para /offline, que e a unica tela que funciona sem servidor mesmo.
+ *
+ * Trocar de tela com o app aberto continua precisando de rede: `<Link>` pede
+ * o payload RSC ao servidor. Quem trata esse caso e o error.tsx de (interno),
+ * nao daqui — service worker nao tem como responder um payload RSC que ele
+ * nunca viu.
  */
 
-const VERSAO = "v1";
+const VERSAO = "v2";
 const CASCA = `innecco-casca-${VERSAO}`;
 const ESTATICO = `innecco-estatico-${VERSAO}`;
 const OFFLINE = "/offline";
 
-// O minimo para a tela de consulta existir sem rede. O JS e o CSS entram
-// sozinhos, pela regra de /_next/static, na primeira visita com sinal.
 const ESSENCIAIS = [OFFLINE, "/logo-marca.png", "/logo-simbolo.png"];
 
 self.addEventListener("install", (evento) => {
@@ -36,8 +37,8 @@ self.addEventListener("install", (evento) => {
     caches
       .open(CASCA)
       .then((cache) => cache.addAll(ESSENCIAIS))
-      // uma versao nova nao espera a aba antiga fechar: no celular ele
-      // raramente fecha o app, e a correcao ficaria semanas sem chegar
+      // nao espera a aba antiga fechar: no celular ele raramente fecha o app,
+      // e a correcao ficaria semanas sem chegar
       .then(() => self.skipWaiting()),
   );
 });
@@ -57,45 +58,21 @@ self.addEventListener("activate", (evento) => {
   );
 });
 
-/**
- * Sair da conta apaga a casca gravada.
- *
- * O HTML guardado foi renderizado no servidor com a sessao dele dentro —
- * tem o nome no cabecalho. Sem isto, sair e reabrir sem rede mostraria a
- * tela de quem saiu.
- */
-self.addEventListener("message", (evento) => {
-  if (evento.data === "limpar-casca") {
-    evento.waitUntil(
-      caches
-        .delete(CASCA)
-        .then(() => caches.open(CASCA))
-        .then((cache) => cache.addAll(ESSENCIAIS)),
-    );
-  }
-});
-
+// O JS e o CSS carregam o hash do conteudo no nome: mudou o conteudo, mudou a
+// URL. Nao ha o que invalidar, e sem eles em cache a /offline nao renderiza.
 const ehEstatico = (url) =>
-  url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/fontes/");
+  url.pathname.startsWith("/_next/static/") ||
+  url.pathname.startsWith("/fontes/");
 
-async function redePrimeiro(requisicao) {
+async function paginaOuOffline(requisicao) {
   try {
-    const resposta = await fetch(requisicao);
-
-    // `redirected` e o que separa a pagina pedida da que o servidor entregou
-    // no lugar dela. Com a sessao vencida, /produtos responde 200 — mas o
-    // corpo e o do /login, porque o fetch seguiu o redirecionamento do proxy.
-    // Guardar isso gravaria a tela de login sob a chave de /produtos, e o app
-    // sem sinal abriria num login que nao tem como funcionar, com o catalogo
-    // do aparelho inalcancavel atras dele.
-    if (resposta.ok && resposta.type === "basic" && !resposta.redirected) {
-      const cache = await caches.open(CASCA);
-      cache.put(requisicao, resposta.clone());
-    }
-    return resposta;
+    return await fetch(requisicao);
   } catch {
-    const guardada = await caches.match(requisicao, { ignoreSearch: true });
-    return guardada ?? (await caches.match(OFFLINE)) ?? Response.error();
+    const guardada = await caches.match(OFFLINE);
+    if (!guardada) throw new Error("sem /offline em cache");
+    // redireciona em vez de devolver a /offline no lugar da URL pedida: e a
+    // diferenca entre o app abrir e o roteador estourar
+    return Response.redirect(new URL(OFFLINE, self.location.origin).href, 302);
   }
 }
 
@@ -114,15 +91,24 @@ async function cachePrimeiro(requisicao) {
 self.addEventListener("fetch", (evento) => {
   const { request } = evento;
 
-  // POST e server action nao se guardam: mandar de novo o que ja foi
-  // enviado gravaria orcamento em dobro
+  // POST e server action nao se guardam nem se repetem: reenviar o que ja
+  // foi enviado gravaria orcamento em dobro
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // a propria /offline vem do cache quando a rede falha; sem esta excecao o
+  // redirecionamento acima cairia nela mesma, em laco
+  if (request.mode === "navigate" && url.pathname === OFFLINE) {
+    evento.respondWith(
+      fetch(request).catch(() => caches.match(OFFLINE)),
+    );
+    return;
+  }
+
   if (request.mode === "navigate") {
-    evento.respondWith(redePrimeiro(request));
+    evento.respondWith(paginaOuOffline(request));
     return;
   }
 

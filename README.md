@@ -28,15 +28,47 @@ cd web && npm install && npm run dev
 Precisa de `web/.env.local` com `NEXT_PUBLIC_SUPABASE_URL` e
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
-**O modo offline não funciona em `dev`** — o service worker fica desligado ali
-de propósito, porque brigaria com o recarregamento a quente. Para testar:
+## Sem sinal
+
+O que funciona sem internet, e por quê:
+
+| situação | comportamento |
+|---|---|
+| sinal cai com o app aberto | segue funcionando: catálogo e busca são locais |
+| montar e fechar orçamento | entra na fila do aparelho e sobe quando a rede volta |
+| trocar de tela | tela de "sem conexão" com botão de tentar de novo |
+| abrir o app sem sinal | abre em `/offline`, com o catálogo para consulta |
+
+Três peças, independentes entre si:
+
+- **`lib/carrinho.ts`** grava o rascunho no aparelho. O iOS descarrega o app da
+  memória quando ele fica em segundo plano, e sem isso os itens sumiam.
+- **`lib/fila-orcamentos.ts`** guarda o orçamento fechado sem sinal. O id sai do
+  aparelho, e é ele que torna o reenvio seguro: sem isso cada retentativa
+  criaria um orçamento novo.
+- **`public/sw.js`** faz uma coisa só — abrir o app sem sinal em `/offline`, em
+  vez da página de erro do navegador.
+
+Duas armadilhas que já custaram caro e estão anotadas no código:
+
+1. `<Link>` no App Router **não pede a página**, pede o payload RSC ao servidor.
+   Sem rede a requisição falha e o roteador lança. Quem trata é
+   `app/(interno)/error.tsx`, não o service worker — ele não tem como responder
+   um payload que nunca viu.
+2. Service worker **não pode devolver o conteúdo de uma página no endereço de
+   outra**. O Next hidrata com a árvore errada e o roteador estoura. Por isso
+   `/offline` é entregue por redirecionamento, não por substituição.
+
+Testar offline exige build de produção — em `dev` o service worker fica
+desligado, senão brigaria com o recarregamento a quente:
 
 ```bash
 cd web && npm run build && npm run start
 ```
 
 E só em `localhost` ou HTTPS: service worker exige contexto seguro, então pelo
-IP da rede local (`http://192.168.x.x`) ele nem registra.
+IP da rede local (`http://192.168.x.x`) ele nem registra. **Testar com clique
+de verdade num link** — recarregar a página não exercita o caminho que quebra.
 
 ## Carregar uma tabela de preços nova
 

@@ -243,9 +243,15 @@ export function EditorOrcamento({
 
         toast.success("Orçamento guardado no aparelho", {
           description: "Sobe sozinho assim que o sinal voltar.",
+          duration: 8000,
         });
         useCarrinho.getState().novo();
-        router.push("/orcamentos");
+
+        // Sem router.push aqui, de proposito. Trocar de tela pede o payload
+        // RSC ao servidor, e e justamente ele que nao esta respondendo — a
+        // navegacao estouraria no roteador e a tela quebraria logo depois de
+        // guardar o orcamento com sucesso. Fica onde esta, ja em branco para
+        // o proximo. A lista, com o pendente, ele ve quando o sinal voltar.
       }
     });
   }
