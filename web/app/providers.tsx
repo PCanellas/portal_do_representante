@@ -16,6 +16,17 @@ import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persist
  */
 const VINTE_E_QUATRO_DIAS = 1000 * 60 * 60 * 24 * 24;
 
+/**
+ * Muda quando o formato do que guardamos muda, e descarta o cache antigo.
+ *
+ * Sem isso, o aparelho que ja tinha o catalogo guardado continuaria servindo
+ * a versao sem o campo novo por ate 6 horas — o produto apareceria sem ficha
+ * tecnica e ninguem saberia por que. Anotar aqui o que entrou em cada versao:
+ *
+ *   2  ficha tecnica do produto (`detalhes`)
+ */
+const VERSAO_CACHE = "2";
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -44,6 +55,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       persister,
       // aqui e comparacao de data, nao timeout, mas segue o mesmo prazo
       maxAge: VINTE_E_QUATRO_DIAS,
+      buster: VERSAO_CACHE,
     });
     return desfazer;
   }, [queryClient]);

@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { CloudOff, Pencil, RefreshCw, Search, X } from "lucide-react";
+import {
+  ChevronDown,
+  CloudOff,
+  Pencil,
+  RefreshCw,
+  Search,
+  X,
+} from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -241,66 +248,100 @@ function CartaoProduto({
 }) {
   const semPreco = produto.preco_unitario === 0;
   const emFalta = produto.situacao === 0;
+  const [fichaAberta, setFichaAberta] = useState(false);
 
   return (
     <li
       className={cn(
-        "flex items-start gap-2 rounded-xl border p-3.5 transition-colors",
+        "rounded-xl border p-3.5 transition-colors",
         emFalta
           ? "border-dashed bg-muted/40"
           : "bg-card hover:border-marca-dourado/40",
       )}
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-sm leading-snug font-medium">{produto.descricao}</p>
-        {produto.variante ? (
-          <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
-            {produto.variante}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-snug font-medium">
+            {produto.descricao}
           </p>
-        ) : null}
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-mono text-xs text-muted-foreground">
-            {produto.referencia}
-          </span>
-          <span className="text-xs text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{fabricante}</span>
-          {emFalta ? (
-            <Badge variant="destructive" className="text-[11px]">
-              Em falta
-            </Badge>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="shrink-0 text-right">
-        {semPreco ? (
-          <Badge variant="secondary" className="text-[11px]">
-            Sem preço
-          </Badge>
-        ) : (
-          <>
-            <p className="text-base leading-tight font-semibold tabular-nums">
-              {formatarPreco(produto.preco_unitario)}
+          {produto.variante ? (
+            <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
+              {produto.variante}
             </p>
-            {produto.porcentagem_imposto > 0 ? (
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                +{produto.porcentagem_imposto.toLocaleString("pt-BR")}% imp.
-              </p>
+          ) : null}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-mono text-xs text-muted-foreground">
+              {produto.referencia}
+            </span>
+            <span className="text-xs text-muted-foreground">·</span>
+            <span className="text-xs text-muted-foreground">{fabricante}</span>
+            {emFalta ? (
+              <Badge variant="destructive" className="text-[11px]">
+                Em falta
+              </Badge>
             ) : null}
-          </>
-        )}
+          </div>
+        </div>
+
+        <div className="shrink-0 text-right">
+          {semPreco ? (
+            <Badge variant="secondary" className="text-[11px]">
+              Sem preço
+            </Badge>
+          ) : (
+            <>
+              <p className="text-base leading-tight font-semibold tabular-nums">
+                {formatarPreco(produto.preco_unitario)}
+              </p>
+              {produto.porcentagem_imposto > 0 ? (
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  +{produto.porcentagem_imposto.toLocaleString("pt-BR")}% imp.
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Editar produto"
+          onClick={aoEditar}
+          className="shrink-0"
+        >
+          <Pencil className="size-4" aria-hidden />
+          <span className="sr-only">Editar {produto.descricao}</span>
+        </Button>
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        title="Editar produto"
-        onClick={aoEditar}
-        className="shrink-0"
-      >
-        <Pencil className="size-4" aria-hidden />
-        <span className="sr-only">Editar {produto.descricao}</span>
-      </Button>
+      {/* Ficha recolhida: a lista mostra 60 resultados e ele varre com o
+          polegar. Aberta em todos, cada cartão triplicaria de altura e a
+          varredura viraria rolagem. Um toque quando o lojista pergunta a
+          medida. */}
+      {produto.detalhes ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setFichaAberta((v) => !v)}
+            aria-expanded={fichaAberta}
+            className="flex items-center gap-1 text-xs font-medium text-marca-azul dark:text-marca-dourado"
+          >
+            <ChevronDown
+              className={cn(
+                "size-3.5 transition-transform",
+                fichaAberta && "rotate-180",
+              )}
+              aria-hidden
+            />
+            Ficha técnica
+          </button>
+          {fichaAberta ? (
+            <p className="mt-1 rounded-lg bg-muted/70 p-2.5 text-xs leading-relaxed whitespace-pre-line text-muted-foreground">
+              {produto.detalhes}
+            </p>
+          ) : null}
+        </>
+      ) : null}
     </li>
   );
 }

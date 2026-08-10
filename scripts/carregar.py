@@ -14,7 +14,7 @@ Credenciais vem do ambiente (ou de um .env na raiz):
 
 Comportamento da carga:
   - produto novo               -> inserido
-  - produto ja existente       -> preco, descricao e imposto atualizados
+  - produto ja existente       -> preco, descricao, ficha e imposto atualizados
   - produto ausente do CSV     -> situacao = 0 (inativo), nunca apagado
   - preco zero                 -> situacao = 0 (ainda sem circulacao)
   - produto com situacao = 2   -> ignorado (exclusao e decisao manual)
@@ -33,6 +33,11 @@ from supabase import create_client
 
 CAMPOS = ['referencia', 'variante', 'descricao',
           'preco_unitario', 'porcentagem_imposto', 'pagina']
+
+# Ficha tecnica (medida, lampada, material, cores), uma linha por item.
+# Opcional: o PDF da Luminatti nao publica ficha, e o CSV dele nao tem a
+# coluna. Ausente vale o mesmo que vazia.
+CAMPO_DETALHES = 'detalhes'
 
 LOTE = 500                  # linhas por requisicao
 ALERTA_VARIACAO = Decimal('0.50')   # 50% de variacao de preco chama atencao
@@ -85,10 +90,18 @@ def ler_csv(caminho):
             except (ValueError, TypeError):
                 erros.append('linha %d: pagina invalida (%s)' % (n, ref)); continue
 
+            # a quebra de linha da ficha e significativa; so o espaco em
+            # excesso dentro de cada linha e que se normaliza
+            detalhes = '\n'.join(
+                ' '.join(l.split())
+                for l in (linha.get(CAMPO_DETALHES) or '').splitlines()
+                if l.strip())
+
             linhas.append({
                 'referencia': ref,
                 'variante': var,
                 'descricao': desc,
+                'detalhes': detalhes,
                 'preco_unitario': preco,
                 'porcentagem_imposto': imposto,
                 'pagina': pagina,
@@ -118,7 +131,8 @@ def calcular_diff(csv_linhas, banco):
             novos.append(l)
         elif (Decimal(str(atual['preco_unitario'])) != l['preco_unitario']
               or Decimal(str(atual['porcentagem_imposto'])) != l['porcentagem_imposto']
-              or atual['descricao'] != l['descricao']):
+              or atual['descricao'] != l['descricao']
+              or (atual.get('detalhes') or '') != l['detalhes']):
             alterados.append((l, atual))
         else:
             iguais += 1
@@ -213,8 +227,8 @@ def main():
     banco, pagina, tamanho = {}, 0, 1000
     while True:
         lote = sb.table('produtos') \
-                 .select('id,referencia,variante,descricao,preco_unitario,'
-                         'porcentagem_imposto,situacao') \
+                 .select('id,referencia,variante,descricao,detalhes,'
+                         'preco_unitario,porcentagem_imposto,situacao') \
                  .eq('id_fabricante', fab['id']) \
                  .range(pagina * tamanho, (pagina + 1) * tamanho - 1).execute().data
         if not lote:
@@ -248,6 +262,7 @@ def main():
         'referencia': l['referencia'],
         'variante': l['variante'],
         'descricao': l['descricao'],
+        'detalhes': l['detalhes'],
         'preco_unitario': str(l['preco_unitario']),
         'porcentagem_imposto': str(l['porcentagem_imposto']),
         'situacao': 0 if l['preco_unitario'] == 0 else 1,

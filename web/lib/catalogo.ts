@@ -10,6 +10,8 @@ export type Produto = {
   referencia: string;
   variante: string;
   descricao: string;
+  /** Ficha do fabricante (medida, lâmpada, material, cores), uma por linha. */
+  detalhes: string;
   preco_unitario: number;
   porcentagem_imposto: number;
   situacao: number; // 1 = ativo, 0 = inativo (sem preco ou fora de linha)
@@ -30,7 +32,13 @@ export function normalizar(texto: string) {
   return texto.normalize("NFD").replace(ACENTOS, "").toLowerCase();
 }
 
-/** Texto que entra na busca de cada produto. */
+/**
+ * Texto que entra na busca de cada produto.
+ *
+ * `detalhes` fica de fora de propósito: toda peça da Metal Domado lista
+ * "Cores: Sólidas e Automotivas", e com a ficha indexada procurar
+ * "automotiva" traria o catálogo inteiro. Busca é por nome e código.
+ */
 export function textoBusca(p: Produto) {
   return normalizar(`${p.referencia} ${p.descricao} ${p.variante}`);
 }

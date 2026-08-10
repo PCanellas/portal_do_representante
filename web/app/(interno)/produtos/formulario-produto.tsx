@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import type { Produto } from "@/lib/catalogo";
 import { formatarDecimal, interpretarNumero } from "@/lib/numero";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export function FormularioProduto({
   const [referencia, setReferencia] = useState(produto.referencia);
   const [variante, setVariante] = useState(produto.variante);
   const [descricao, setDescricao] = useState(produto.descricao);
+  const [detalhes, setDetalhes] = useState(produto.detalhes);
   const [preco, setPreco] = useState(formatarDecimal(produto.preco_unitario));
   const [imposto, setImposto] = useState(
     formatarDecimal(produto.porcentagem_imposto),
@@ -59,6 +61,7 @@ export function FormularioProduto({
           referencia: referencia.trim(),
           variante: variante.trim(),
           descricao: descricao.trim(),
+          detalhes: detalhes.trim(),
           preco_unitario: precoNumero!,
           porcentagem_imposto: impostoNumero,
           situacao: emFalta ? 0 : 1,
@@ -131,6 +134,24 @@ export function FormularioProduto({
           )}
         />
         <Erro mensagem={erros.descricao} />
+      </div>
+
+      {/* Uma informação por linha, como sai da tabela do fabricante: é assim
+          que ele lê para responder o lojista. */}
+      <div className="space-y-2">
+        <Label htmlFor="detalhes">Ficha técnica</Label>
+        <Textarea
+          id="detalhes"
+          value={detalhes}
+          onChange={(e) => setDetalhes(e.target.value)}
+          maxLength={1000}
+          rows={4}
+          placeholder={"Largura: 8cm | Altura: 40cm\nMaterial: Alumínio"}
+          className="text-sm"
+        />
+        <p className="text-xs text-muted-foreground">
+          Medida, lâmpada, material e cores. Uma por linha.
+        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

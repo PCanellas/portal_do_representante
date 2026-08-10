@@ -29,6 +29,7 @@ const schema = z.object({
     .trim()
     .min(2, "Informe a descrição")
     .max(300, "Descrição muito longa"),
+  detalhes: z.string().trim().max(1000, "Ficha técnica muito longa"),
   preco_unitario: z
     .number()
     .min(0, "Preço não pode ser negativo")
@@ -70,7 +71,7 @@ export async function salvarProduto(
     .update(campos)
     .eq("id", id)
     .select(
-      "id, id_fabricante, referencia, variante, descricao, preco_unitario, porcentagem_imposto, situacao",
+      "id, id_fabricante, referencia, variante, descricao, detalhes, preco_unitario, porcentagem_imposto, situacao",
     )
     .single();
 
@@ -109,6 +110,7 @@ export async function salvarProduto(
       referencia: data.referencia,
       variante: data.variante ?? "",
       descricao: data.descricao,
+      detalhes: data.detalhes ?? "",
       // numeric chega como string pelo PostgREST
       preco_unitario: Number(data.preco_unitario),
       porcentagem_imposto: Number(data.porcentagem_imposto),

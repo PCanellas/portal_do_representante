@@ -76,6 +76,10 @@ create table public.produtos (
   referencia          text not null,
   variante            text not null default '',   -- cor/acabamento; '' quando não há
   descricao           text not null,
+  -- ficha técnica do fabricante (medida, lâmpada, material, cores), uma linha
+  -- por item. Fora da chave única e fora do índice de busca: é consulta, não
+  -- identidade. '' quando o fabricante não publica.
+  detalhes            text not null default '',
   preco_unitario      numeric(12,2) not null,
   porcentagem_imposto numeric(5,2) not null default 0,
   situacao            smallint not null default 1 check (situacao in (0,1,2)),

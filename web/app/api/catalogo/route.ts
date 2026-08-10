@@ -39,7 +39,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("produtos")
       .select(
-        "id, id_fabricante, referencia, variante, descricao, preco_unitario, porcentagem_imposto, situacao, atualizado_em",
+        "id, id_fabricante, referencia, variante, descricao, detalhes, preco_unitario, porcentagem_imposto, situacao, atualizado_em",
       )
       .neq("situacao", 2)
       .order("referencia")
@@ -57,6 +57,7 @@ export async function GET() {
         referencia: p.referencia,
         variante: p.variante ?? "",
         descricao: p.descricao,
+        detalhes: p.detalhes ?? "",
         // numeric chega como string pelo PostgREST
         preco_unitario: Number(p.preco_unitario),
         porcentagem_imposto: Number(p.porcentagem_imposto),
