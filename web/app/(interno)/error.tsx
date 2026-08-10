@@ -3,20 +3,22 @@
 import { AvisoSemSinal } from "@/components/layout/aviso-sem-sinal";
 
 /**
- * Trocar de tela sem sinal caia na tela de erro do proprio Next — "This page
- * couldn't load", em ingles e sem saida.
+ * Erro ao renderizar uma tela interna, com o cabecalho e a barra de baixo
+ * ainda no lugar — ele ve onde esta e sai andando.
  *
- * A causa: `<Link>` no App Router nao pede a pagina, pede o payload RSC ao
- * servidor. Sem rede a requisicao falha e o roteador lanca. Nao ha como
- * evitar o lancamento; ha como decidir onde ele para.
+ * NAO e isto que trata a falta de sinal, embora tenha sido escrito para
+ * isso. Medido: quando o payload RSC nao vem, o roteador do Next nao lanca
+ * dentro do boundary — ele desiste da navegacao suave e recarrega a pagina
+ * inteira. Nada chega aqui. Quem atende esse caso e o service worker, que
+ * intercepta o recarregamento e devolve /offline.
  *
- * Estando aqui, dentro de (interno), o cabecalho e a barra de baixo
- * continuam na tela — ele ve onde esta e navega para outro lugar. Um
- * error.tsx na raiz substituiria o app inteiro por uma pagina solta.
+ * O que sobra para ca sao os erros de verdade: server component que estourou,
+ * resposta que nao deu para ler. Continua valendo a pena existir — sem ele,
+ * qualquer um deles vira a tela em ingles do Next.
  *
- * `reset` remonta o trecho que falhou. Com o sinal de volta, a tela aparece;
- * sem ele, volta para ca — o que ja e uma resposta.
+ * `retry` refaz a busca e remonta o trecho, que e o que se quer aqui. `reset`
+ * so limpa o estado sem buscar de novo, e devolveria o mesmo erro.
  */
-export default function ErroInterno({ reset }: { reset: () => void }) {
-  return <AvisoSemSinal aoTentarNovamente={reset} />;
+export default function ErroInterno({ retry }: { retry: () => void }) {
+  return <AvisoSemSinal aoTentarNovamente={retry} />;
 }
