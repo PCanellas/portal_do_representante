@@ -11,7 +11,12 @@ import { entrar, type EstadoLogin } from "./actions";
 function BotaoEntrar() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" className="w-full text-base" disabled={pending}>
+    <Button
+      type="submit"
+      size="lg"
+      className="w-full text-base"
+      disabled={pending}
+    >
       {pending ? (
         <>
           <LoaderCircle className="animate-spin" aria-hidden />

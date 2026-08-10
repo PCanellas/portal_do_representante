@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { persistQueryClient } from "@tanstack/react-query-persist-client";
+import { useState } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 
 /**
@@ -27,6 +27,18 @@ const VINTE_E_QUATRO_DIAS = 1000 * 60 * 60 * 24 * 24;
  */
 const VERSAO_CACHE = "2";
 
+/**
+ * PersistQueryClientProvider, e nao persistQueryClient dentro de um efeito.
+ *
+ * A diferenca aparece justamente sem rede. Restaurando por efeito, a consulta
+ * do catalogo dispara antes de o disco responder: a busca falha, a consulta
+ * fica em estado de erro e a tela mostra "nao foi possivel carregar" com os
+ * 2.693 produtos ali do lado, guardados. Pior, o persister grava por cima o
+ * estado que acabou de falhar, e o catalogo se perde de verdade.
+ *
+ * Este provider segura as consultas ate a restauracao terminar. Deixa de ser
+ * corrida e passa a ser ordem.
+ */
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -43,24 +55,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
 
-  // Persiste o cache no navegador para o catalogo sobreviver a recarga e
-  // ficar disponivel sem rede. So roda no cliente, onde localStorage existe.
-  useEffect(() => {
-    const persister = createSyncStoragePersister({
-      storage: window.localStorage,
+  // storage so existe no navegador; no servidor o persister fica inerte
+  const [persister] = useState(() =>
+    createSyncStoragePersister({
+      storage: typeof window === "undefined" ? undefined : window.localStorage,
       key: "innecco-cache",
-    });
-    const [desfazer] = persistQueryClient({
-      queryClient,
-      persister,
-      // aqui e comparacao de data, nao timeout, mas segue o mesmo prazo
-      maxAge: VINTE_E_QUATRO_DIAS,
-      buster: VERSAO_CACHE,
-    });
-    return desfazer;
-  }, [queryClient]);
+    }),
+  );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        // aqui e comparacao de data, nao timeout, mas segue o mesmo prazo
+        maxAge: VINTE_E_QUATRO_DIAS,
+        buster: VERSAO_CACHE,
+      }}
+    >
+      {children}
+    </PersistQueryClientProvider>
   );
 }

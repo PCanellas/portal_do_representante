@@ -13,7 +13,10 @@ import { NextResponse, type NextRequest } from "next/server";
  * conta propria — proxy nao substitui autorizacao.
  */
 
-const ROTAS_PUBLICAS = ["/login", "/auth"];
+// /offline precisa ser publica: e a tela que o service worker guarda na
+// instalacao, e rota protegida devolveria o redirecionamento para o login,
+// que seria o que ficaria em cache. Ela nao le nada do servidor.
+const ROTAS_PUBLICAS = ["/login", "/auth", "/offline"];
 const INICIO = "/home";
 
 export async function proxy(request: NextRequest) {
@@ -80,7 +83,13 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // tudo, menos estaticos e imagens
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
+    // Tudo, menos estaticos e imagens.
+    //
+    // sw.js precisa ficar de fora nominalmente. Passando por aqui ele virava
+    // um redirecionamento para o login, e o navegador recusa registrar
+    // service worker cujo script veio de redirecionamento — com o erro
+    // "The script resource is behind a redirect, which is disallowed".
+    // O modo offline inteiro ficava desligado, sem nada na tela denunciando.
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
   ],
 };

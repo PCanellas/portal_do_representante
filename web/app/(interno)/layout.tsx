@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Cabecalho } from "@/components/layout/cabecalho";
 import { BarraInferior } from "@/components/layout/barra-inferior";
+import { SincronizarFila } from "@/components/pwa/sincronizar-fila";
 import { sair } from "./actions";
 
 export default async function LayoutInterno({ children }: LayoutProps<"/">) {
@@ -42,6 +43,7 @@ export default async function LayoutInterno({ children }: LayoutProps<"/">) {
       </main>
 
       <BarraInferior />
+      <SincronizarFila />
     </div>
   );
 }

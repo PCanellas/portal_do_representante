@@ -7,6 +7,7 @@ import { LogOut, User } from "lucide-react";
 import { NAVEGACAO, ehRotaAtiva } from "@/lib/navegacao";
 import { BotaoAtualizar } from "./botao-atualizar";
 import { cn } from "@/lib/utils";
+import { limparCascaOffline } from "@/components/pwa/registrar-service-worker";
 
 type Props = {
   nome: string;
@@ -87,7 +88,14 @@ export function Cabecalho({ nome, aoSair }: Props) {
             </span>
           </div>
 
-          <form action={aoSair}>
+          {/* limpa a casca antes de sair: o HTML guardado para o modo
+              offline foi renderizado com a sessao dele dentro */}
+          <form
+            action={async () => {
+              await limparCascaOffline();
+              await aoSair();
+            }}
+          >
             <button
               type="submit"
               title="Sair"

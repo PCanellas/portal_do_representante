@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { EstadoCarrinho } from "@/lib/carrinho";
+import { orcamentoDesatualizado } from "@/lib/orcamento";
+import { tabelasVigentes } from "@/lib/tabelas-precos";
 import { EditorOrcamento } from "../editor-orcamento";
 import type { ClienteOpcao } from "../seletor-cliente";
 import type { FabricanteOpcao } from "../seletor-fabricante";
@@ -24,7 +26,7 @@ export default async function OrcamentoPage({
     supabase
       .from("orcamentos")
       .select(
-        "id, numero, id_cliente, id_fabricante, percentual_desconto, prazo_pagamento",
+        "id, numero, id_cliente, id_fabricante, percentual_desconto, prazo_pagamento, criado_em",
       )
       .eq("id", id)
       .neq("situacao", 2)
@@ -70,11 +72,19 @@ export default async function OrcamentoPage({
     })),
   };
 
+  // orçamento de antes da tabela vigente fica só para consulta e PDF
+  const vigentes = await tabelasVigentes();
+  const bloqueado = orcamentoDesatualizado(
+    orcamento.criado_em,
+    vigentes.get(orcamento.id_fabricante),
+  );
+
   return (
     <EditorOrcamento
       clientes={(clientes ?? []) as ClienteOpcao[]}
       fabricantes={(fabricantes ?? []) as FabricanteOpcao[]}
       orcamento={estado}
+      bloqueado={bloqueado}
     />
   );
 }

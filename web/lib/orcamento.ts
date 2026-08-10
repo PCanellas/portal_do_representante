@@ -149,3 +149,23 @@ const DATA = new Intl.DateTimeFormat("pt-BR", {
 export function formatarData(iso: string) {
   return DATA.format(new Date(iso));
 }
+
+/**
+ * Orçamento fechado antes da tabela de preços vigente não se reedita.
+ *
+ * Regravar chama a mesma action de sempre, e ela relê os preços do banco —
+ * então mexer numa quantidade sequer de um orçamento antigo o recalcularia
+ * inteiro pela tabela nova, sem avisar. O que era R$ 5.000 vira R$ 5.400 e o
+ * cliente recebe um documento que não é o que foi combinado.
+ *
+ * O corte é a data de criação: orçamento anterior à tabela mais recente
+ * daquela empresa fica só para consulta e PDF. Sem tabela carregada para o
+ * fabricante, não há com o que comparar e a edição segue liberada.
+ */
+export function orcamentoDesatualizado(
+  criadoEm: string,
+  tabelaVigenteEm: string | null | undefined,
+) {
+  if (!tabelaVigenteEm) return false;
+  return new Date(criadoEm).getTime() < new Date(tabelaVigenteEm).getTime();
+}

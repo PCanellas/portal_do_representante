@@ -16,6 +16,10 @@ export function digitosNacionais(valor: string) {
 }
 
 // DDDs em uso no Brasil. Evita aceitar 00, 10, 20 e outros inexistentes.
+// Uma linha por região, como a Anatel publica: assim dá para conferir contra
+// a fonte e ver de relance qual região falta. O prettier juntaria tudo num
+// bloco corrido, que passa a ser uma parede de números.
+// prettier-ignore
 const DDDS = new Set([
   11, 12, 13, 14, 15, 16, 17, 18, 19,
   21, 22, 24, 27, 28,

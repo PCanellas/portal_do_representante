@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { RegistrarServiceWorker } from "@/components/pwa/registrar-service-worker";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <Providers>{children}</Providers>
         <Toaster position="top-center" richColors />
+        <RegistrarServiceWorker />
       </body>
     </html>
   );

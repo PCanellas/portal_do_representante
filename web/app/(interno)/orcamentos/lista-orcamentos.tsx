@@ -7,6 +7,7 @@ import {
   FilePlus,
   FileText,
   LoaderCircle,
+  Lock,
   Pencil,
   Search,
   Trash2,
@@ -39,6 +40,8 @@ export type OrcamentoLista = {
   cliente: string;
   id_fabricante: string;
   fabricante: string;
+  /** anterior à tabela vigente da empresa: abre só para consulta e PDF */
+  bloqueado: boolean;
 };
 
 export function ListaOrcamentos({
@@ -94,14 +97,22 @@ export function ListaOrcamentos({
 
   function excluir(o: OrcamentoLista) {
     iniciar(async () => {
+      let r;
       try {
-        await excluirOrcamento(o.id);
+        r = await excluirOrcamento(o.id);
       } catch {
         toast.error("Não foi possível excluir", {
           description: "Verifique a conexão e tente de novo.",
         });
         return;
       }
+      if (!r.ok) {
+        toast.error("Não foi possível excluir", {
+          description: "O orçamento continua na lista. Tente de novo.",
+        });
+        return;
+      }
+      toast.success(`Orçamento ${o.numero} excluído`);
       setAExcluir(null);
     });
   }
@@ -228,13 +239,24 @@ export function ListaOrcamentos({
                   </span>
                 </Button>
 
+                {/* Bloqueado ainda abre — ele consulta e tira PDF. O que
+                    muda e o icone, que promete o que a tela vai entregar. */}
                 <Link
                   href={`/orcamentos/${o.id}`}
-                  title="Editar"
+                  title={o.bloqueado ? "Ver (tabela antiga)" : "Editar"}
                   className={buttonVariants({ variant: "ghost", size: "icon" })}
                 >
-                  <Pencil className="size-4" aria-hidden />
-                  <span className="sr-only">Editar orçamento {o.numero}</span>
+                  {o.bloqueado ? (
+                    <Lock
+                      className="size-4 text-muted-foreground"
+                      aria-hidden
+                    />
+                  ) : (
+                    <Pencil className="size-4" aria-hidden />
+                  )}
+                  <span className="sr-only">
+                    {o.bloqueado ? "Ver" : "Editar"} orçamento {o.numero}
+                  </span>
                 </Link>
 
                 <Button

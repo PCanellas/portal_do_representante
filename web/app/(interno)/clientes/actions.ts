@@ -92,13 +92,27 @@ export async function salvarCliente(
   return { salvoEm: Date.now() };
 }
 
-/** Nao apaga: marca como excluido para nao orfanar orcamentos antigos. */
-export async function excluirCliente(id: string) {
+/**
+ * Nao apaga: marca como excluido para nao orfanar orcamentos antigos.
+ *
+ * Devolve se deu certo. O RLS esconde o que nao e dele, e update em linha
+ * escondida nao da erro — nao encontra nada e segue. Sem conferir a linha
+ * devolvida, a tela anunciaria "excluido" para uma exclusao que nao houve, e
+ * o cliente reapareceria na proxima abertura sem explicacao.
+ */
+export async function excluirCliente(id: string): Promise<{ ok: boolean }> {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("clientes")
     .update({ situacao: 2 })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
-  if (!error) revalidatePath("/clientes");
+  if (error || !data?.length) {
+    console.error("[excluirCliente]", { id, error });
+    return { ok: false };
+  }
+
+  revalidatePath("/clientes");
+  return { ok: true };
 }

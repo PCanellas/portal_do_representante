@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { orcamentoDesatualizado } from "@/lib/orcamento";
+import { tabelasVigentes } from "@/lib/tabelas-precos";
+import { FilaPendente } from "./fila-pendente";
 import { ListaOrcamentos, type OrcamentoLista } from "./lista-orcamentos";
 
 export const metadata: Metadata = { title: "Orçamentos" };
@@ -33,6 +36,8 @@ export default async function OrcamentosPage() {
 
   const linhas = (data ?? []) as unknown as LinhaOrcamento[];
 
+  const vigentes = await tabelasVigentes();
+
   const orcamentos: OrcamentoLista[] = linhas.map((o) => ({
     id: o.id,
     numero: o.numero,
@@ -41,7 +46,17 @@ export default async function OrcamentosPage() {
     cliente: o.clientes?.nome ?? "—",
     id_fabricante: o.id_fabricante,
     fabricante: o.fabricantes?.nome ?? "",
+    // anterior a tabela vigente daquela empresa: so consulta e PDF
+    bloqueado: orcamentoDesatualizado(
+      o.criado_em,
+      vigentes.get(o.id_fabricante),
+    ),
   }));
 
-  return <ListaOrcamentos orcamentos={orcamentos} />;
+  return (
+    <div className="space-y-4">
+      <FilaPendente />
+      <ListaOrcamentos orcamentos={orcamentos} />
+    </div>
+  );
 }

@@ -34,7 +34,16 @@ import { FormularioProduto } from "./formulario-produto";
 
 const MAX_VISIVEL = 60;
 
-export function BuscaProdutos() {
+/**
+ * `somenteLeitura` e para a tela offline: corrigir produto grava no banco, e
+ * sem rede o botao so levaria a um erro. O resto da tela e igual de
+ * proposito — offline nao e hora de aprender um layout novo.
+ */
+export function BuscaProdutos({
+  somenteLeitura = false,
+}: {
+  somenteLeitura?: boolean;
+} = {}) {
   const { data, isLoading, isError, isFetching, error, refetch } =
     useCatalogo();
   const [termo, setTermo] = useState("");
@@ -64,12 +73,15 @@ export function BuscaProdutos() {
     setEmEdicao(null);
   }
 
-  // sessao caiu com o app aberto: volta para o login preservando o destino
+  // Sessao caiu com o app aberto: volta para o login preservando o destino.
+  // Na tela offline nao: ali o pressuposto e que o servidor esta fora de
+  // alcance, e mandar para um login que nao vai carregar troca uma tela que
+  // funciona por um beco sem saida. O catalogo do aparelho continua servindo.
   useEffect(() => {
-    if (error instanceof SessaoExpirada) {
+    if (!somenteLeitura && error instanceof SessaoExpirada) {
       router.push("/login?proximo=/produtos");
     }
-  }, [error, router]);
+  }, [error, router, somenteLeitura]);
 
   const produtos = useMemo(
     () =>
@@ -171,7 +183,7 @@ export function BuscaProdutos() {
                 key={p.id}
                 produto={p}
                 fabricante={nomeFabricante(p.id_fabricante)}
-                aoEditar={() => setEmEdicao(p)}
+                aoEditar={somenteLeitura ? null : () => setEmEdicao(p)}
               />
             ))}
           </ul>
@@ -244,7 +256,8 @@ function CartaoProduto({
 }: {
   produto: Produto;
   fabricante: string;
-  aoEditar: () => void;
+  /** null esconde o botao: a tela offline nao edita. */
+  aoEditar: (() => void) | null;
 }) {
   const semPreco = produto.preco_unitario === 0;
   const emFalta = produto.situacao === 0;
@@ -302,16 +315,18 @@ function CartaoProduto({
           )}
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          title="Editar produto"
-          onClick={aoEditar}
-          className="shrink-0"
-        >
-          <Pencil className="size-4" aria-hidden />
-          <span className="sr-only">Editar {produto.descricao}</span>
-        </Button>
+        {aoEditar ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Editar produto"
+            onClick={aoEditar}
+            className="shrink-0"
+          >
+            <Pencil className="size-4" aria-hidden />
+            <span className="sr-only">Editar {produto.descricao}</span>
+          </Button>
+        ) : null}
       </div>
 
       {/* Ficha recolhida: a lista mostra 60 resultados e ele varre com o

@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   ArrowLeft,
+  Lock,
   Minus,
   Package,
   Plus,
@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatarPreco } from "@/lib/catalogo";
 import {
@@ -36,9 +36,13 @@ import {
 } from "@/lib/orcamento";
 import {
   useCarrinho,
+  useRascunho,
   type EstadoCarrinho,
   type ItemCarrinho,
 } from "@/lib/carrinho";
+import { useFilaOrcamentos } from "@/lib/fila-orcamentos";
+import { gerarId } from "@/lib/id";
+import { useCatalogo } from "@/lib/use-catalogo";
 import { interpretarNumero } from "@/lib/numero";
 import { cn } from "@/lib/utils";
 import { salvarOrcamento } from "./actions";
@@ -51,6 +55,9 @@ type Props = {
   fabricantes: FabricanteOpcao[];
   /** Ausente em /orcamentos/novo; presente ao abrir um orcamento salvo. */
   orcamento?: EstadoCarrinho;
+  /** Anterior a tabela vigente: fica so para consulta. Ver a regra em
+   *  `orcamentoDesatualizado`, em lib/orcamento.ts. */
+  bloqueado?: boolean;
 };
 
 /**
@@ -71,32 +78,68 @@ function assinatura(e: {
   ]);
 }
 
-export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
+export function EditorOrcamento({
+  clientes,
+  fabricantes,
+  orcamento,
+  bloqueado = false,
+}: Props) {
   const router = useRouter();
   const [salvando, iniciarSalvamento] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [confirmarLimpeza, setConfirmarLimpeza] = useState(false);
   // troca de empresa com itens no orcamento: guarda a escolha ate confirmar
   const [trocaEmpresa, setTrocaEmpresa] = useState<string | null>(null);
+  const [confirmarSaida, setConfirmarSaida] = useState(false);
   // o seletor de produtos e unico e fica sempre montado — ver SeletorProdutos
   const [seletorAberto, setSeletorAberto] = useState(false);
 
   const carrinho = useCarrinho();
 
+  const hidratado = useRascunho();
+
   // Sincroniza o estado da tela com a rota:
   //   /orcamentos/[id]  carrega o orcamento salvo;
-  //   /orcamentos/novo  comeca do zero, toda vez que ele entra.
+  //   /orcamentos/novo  retoma o rascunho gravado no aparelho.
   // O objeto `orcamento` e recriado a cada render do servidor, dai comparar
   // por id: sem isso, reabrir sobrescreveria o que ele acabou de editar.
+  //
+  // Em /novo o rascunho so e descartado quando tem `id`, ou seja, quando
+  // sobrou de um orcamento ja salvo que ele abriu e deixou sem gravar —
+  // esse nao e o rascunho de agora. Zerar aqui em todo caso, como era
+  // antes, apagaria o trabalho que a gravacao no aparelho existe para
+  // proteger: bastava o iOS descarregar o app e voltar para a tela.
   useEffect(() => {
+    if (!hidratado) return;
     if (orcamento) {
       if (useCarrinho.getState().id !== orcamento.id) {
         useCarrinho.getState().abrir(orcamento);
       }
-    } else {
+    } else if (useCarrinho.getState().id !== null) {
       useCarrinho.getState().novo();
     }
-  }, [orcamento]);
+  }, [orcamento, hidratado]);
+
+  // O catalogo do aparelho e a versao mais recente que ele tem dos produtos.
+  // Enquanto o rascunho esta aberto, as linhas acompanham — inclusive quando
+  // ele acabou de corrigir o preco na tela de Produtos.
+  const { data: catalogo } = useCatalogo();
+
+  useEffect(() => {
+    if (!hidratado || !catalogo) return;
+    useCarrinho.getState().sincronizarComCatalogo(catalogo.produtos);
+  }, [hidratado, catalogo]);
+
+  /** Produto que saiu do catalogo ou ficou em falta depois de entrar. */
+  const indisponiveis = useMemo(() => {
+    if (!catalogo) return new Set<string>();
+    const porId = new Map(catalogo.produtos.map((p) => [p.id, p]));
+    return new Set(
+      carrinho.itens
+        .filter((i) => porId.get(i.id_produto)?.situacao !== 1)
+        .map((i) => i.id_produto),
+    );
+  }, [catalogo, carrinho.itens]);
 
   const totais = useMemo(
     () => calcularOrcamento(carrinho.itens, carrinho.percentual_desconto),
@@ -105,7 +148,7 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
 
   // no primeiro render o efeito ainda nao rodou; mostrar "nenhum produto"
   // nesse instante pareceria orcamento vazio
-  const carregado = orcamento ? carrinho.id === orcamento.id : true;
+  const carregado = hidratado && (!orcamento || carrinho.id === orcamento.id);
 
   const alterado = orcamento
     ? assinatura(carrinho) !== assinatura(orcamento)
@@ -123,6 +166,12 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
     carrinho.definirFabricante(id);
   }
 
+  /** Larga o orcamento e volta para a lista. */
+  function sair() {
+    useCarrinho.getState().novo();
+    router.push("/orcamentos");
+  }
+
   /** Devolve a primeira pendencia, ou null quando esta pronto para salvar. */
   function validar() {
     if (!carrinho.id_cliente) return "Selecione o cliente.";
@@ -132,6 +181,11 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
     if (semQuantidade) {
       return `Informe a quantidade de ${semQuantidade.descricao}.`;
     }
+    // o servidor recusaria do mesmo jeito; avisar aqui poupa a ida
+    const emFalta = carrinho.itens.find((i) => indisponiveis.has(i.id_produto));
+    if (emFalta) {
+      return `${emFalta.descricao} está em falta. Remova para salvar.`;
+    }
     return null;
   }
 
@@ -140,19 +194,24 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
     setErro(pendencia);
     if (pendencia) return;
 
+    // o id sai daqui e nao do banco: e ele que faz o reenvio da fila
+    // atualizar o mesmo orcamento em vez de criar um segundo
+    const entrada = {
+      id: carrinho.id,
+      id_novo: carrinho.id ? undefined : gerarId(),
+      id_cliente: carrinho.id_cliente!,
+      percentual_desconto: carrinho.percentual_desconto,
+      prazo_pagamento: carrinho.prazo_pagamento,
+      itens: carrinho.itens.map((i) => ({
+        id_produto: i.id_produto,
+        quantidade: i.quantidade,
+        percentual_desconto: i.percentual_desconto,
+      })),
+    };
+
     iniciarSalvamento(async () => {
       try {
-        const r = await salvarOrcamento({
-          id: carrinho.id,
-          id_cliente: carrinho.id_cliente!,
-          percentual_desconto: carrinho.percentual_desconto,
-          prazo_pagamento: carrinho.prazo_pagamento,
-          itens: carrinho.itens.map((i) => ({
-            id_produto: i.id_produto,
-            quantidade: i.quantidade,
-            percentual_desconto: i.percentual_desconto,
-          })),
-        });
+        const r = await salvarOrcamento(entrada);
 
         if (!r.ok) {
           setErro(r.erro);
@@ -166,11 +225,27 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
         useCarrinho.getState().novo();
         router.push("/orcamentos");
       } catch {
-        // a action so lanca quando a requisicao nao chega ao servidor;
-        // fica na tela, com tudo preenchido, para ele tentar de novo
-        const mensagem = "Não foi possível salvar. Verifique a conexão.";
-        setErro(mensagem);
-        toast.error(mensagem);
+        // A action so lanca quando a requisicao nao chega ao servidor — sem
+        // sinal, tunel, elevador. Antes ficava na tela mandando tentar de
+        // novo, o que na loja sem sinal significava tentar ate desistir.
+        // Agora o orcamento entra na fila e sobe sozinho.
+        useFilaOrcamentos.getState().enfileirar({
+          id: entrada.id_novo ?? entrada.id!,
+          entrada,
+          cliente:
+            clientes.find((c) => c.id === carrinho.id_cliente)?.nome ?? "—",
+          fabricante:
+            fabricantes.find((f) => f.id === carrinho.id_fabricante)?.nome ??
+            "",
+          valor_total: totais.total,
+          criado_em: new Date().toISOString(),
+        });
+
+        toast.success("Orçamento guardado no aparelho", {
+          description: "Sobe sozinho assim que o sinal voltar.",
+        });
+        useCarrinho.getState().novo();
+        router.push("/orcamentos");
       }
     });
   }
@@ -180,22 +255,39 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
   return (
     <div className="space-y-5 pb-6">
       <div className="flex items-center gap-3">
-        <Link
-          href="/orcamentos"
+        {/* Sair pela seta e desistir do orcamento, entao o rascunho vai
+            junto — gravar no aparelho existe para o app ser descarregado sem
+            ele mandar, nao para guardar o que ele decidiu abandonar.
+            Com produtos na tela, pergunta antes: um toque errado na seta nao
+            pode apagar o que ele acabou de montar na frente do cliente. */}
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Voltar para orçamentos"
-          className={buttonVariants({ variant: "ghost", size: "icon" })}
+          onClick={() => (alterado ? setConfirmarSaida(true) : sair())}
         >
           <ArrowLeft className="size-5" aria-hidden />
-        </Link>
+        </Button>
         <h1 className="flex-1 text-xl font-semibold tracking-tight">
           {carrinho.numero ? `Orçamento ${carrinho.numero}` : "Novo orçamento"}
         </h1>
-        {alterado && carrinho.id ? (
+        {alterado && carrinho.id && !bloqueado ? (
           <Badge variant="outline" className="text-[11px]">
             Não salvo
           </Badge>
         ) : null}
       </div>
+
+      {bloqueado ? (
+        <p className="flex items-start gap-2 rounded-xl border border-dashed bg-muted/40 p-3 text-sm text-muted-foreground">
+          <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            Este orçamento é anterior à tabela de preços atual desta empresa.
+            Fica para consulta e PDF: alterar recalcularia tudo pelos preços de
+            hoje, e o cliente receberia outro valor.
+          </span>
+        </p>
+      ) : null}
 
       {/* acompanha a rolagem: o total e o botao ficam sempre a mao */}
       <div className="sticky top-0 z-30 -mx-4 flex items-center justify-between gap-3 border-b bg-background/95 px-4 py-2.5 backdrop-blur">
@@ -211,10 +303,12 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
             {formatarPreco(totais.total)}
           </p>
         </div>
-        <Button size="lg" onClick={salvar} disabled={salvando}>
-          <Save className="size-4" aria-hidden />
-          {salvando ? "Salvando…" : "Salvar"}
-        </Button>
+        {bloqueado ? null : (
+          <Button size="lg" onClick={salvar} disabled={salvando}>
+            <Save className="size-4" aria-hidden />
+            {salvando ? "Salvando…" : "Salvar"}
+          </Button>
+        )}
       </div>
 
       {erro ? (
@@ -253,7 +347,7 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
           <h2 className="text-sm font-semibold text-muted-foreground">
             Produtos
           </h2>
-          {carrinho.itens.length > 0 ? (
+          {carrinho.itens.length > 0 && !bloqueado ? (
             <Button size="lg" onClick={() => setSeletorAberto(true)}>
               <Plus className="size-4" aria-hidden />
               Adicionar
@@ -274,7 +368,7 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
                   : "Escolha a empresa para liberar o catálogo."}
               </p>
             </div>
-            {carrinho.id_fabricante ? (
+            {carrinho.id_fabricante && !bloqueado ? (
               <Button size="lg" onClick={() => setSeletorAberto(true)}>
                 <Plus className="size-4" aria-hidden />
                 Adicionar produto
@@ -284,7 +378,12 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
         ) : (
           <ul className="space-y-2">
             {carrinho.itens.map((item) => (
-              <LinhaItem key={item.id_produto} item={item} />
+              <LinhaItem
+                key={item.id_produto}
+                item={item}
+                indisponivel={indisponiveis.has(item.id_produto)}
+                bloqueado={bloqueado}
+              />
             ))}
           </ul>
         )}
@@ -408,6 +507,33 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={confirmarSaida} onOpenChange={setConfirmarSaida}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {carrinho.itens.length > 0
+                ? `Os ${carrinho.itens.length} ${carrinho.itens.length === 1 ? "produto sai" : "produtos saem"} da tela e o orçamento se perde.`
+                : "O que está preenchido se perde."}{" "}
+              {carrinho.id
+                ? "O orçamento já salvo continua como estava."
+                : "Não há cópia salva."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmarSaida(false);
+                sair();
+              }}
+            >
+              Sair e descartar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={confirmarLimpeza} onOpenChange={setConfirmarLimpeza}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -436,7 +562,17 @@ export function EditorOrcamento({ clientes, fabricantes, orcamento }: Props) {
   );
 }
 
-function LinhaItem({ item }: { item: ItemCarrinho }) {
+function LinhaItem({
+  item,
+  indisponivel,
+  bloqueado,
+}: {
+  item: ItemCarrinho;
+  /** produto saiu do catálogo ou ficou em falta depois de entrar aqui */
+  indisponivel: boolean;
+  /** orçamento anterior à tabela vigente: linha só de leitura */
+  bloqueado: boolean;
+}) {
   const definirQuantidade = useCarrinho((s) => s.definirQuantidade);
   const definirDescontoItem = useCarrinho((s) => s.definirDescontoItem);
   const remover = useCarrinho((s) => s.remover);
@@ -445,7 +581,12 @@ function LinhaItem({ item }: { item: ItemCarrinho }) {
   const semPreco = item.preco_unitario === 0;
 
   return (
-    <li className="space-y-3 rounded-xl border bg-card p-3.5">
+    <li
+      className={cn(
+        "space-y-3 rounded-xl border p-3.5",
+        indisponivel ? "border-destructive/50 bg-destructive/5" : "bg-card",
+      )}
+    >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm leading-snug font-medium">{item.descricao}</p>
@@ -472,59 +613,77 @@ function LinhaItem({ item }: { item: ItemCarrinho }) {
                 +{item.porcentagem_imposto.toLocaleString("pt-BR")}% imp.
               </span>
             ) : null}
+            {indisponivel ? (
+              <Badge variant="destructive" className="text-[11px]">
+                Em falta
+              </Badge>
+            ) : null}
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          title="Remover"
-          onClick={() => remover(item.id_produto)}
-        >
-          <Trash2 className="size-4 text-destructive" aria-hidden />
-          <span className="sr-only">Remover {item.descricao}</span>
-        </Button>
+        {bloqueado ? null : (
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Remover"
+            onClick={() => remover(item.id_produto)}
+          >
+            <Trash2 className="size-4 text-destructive" aria-hidden />
+            <span className="sr-only">Remover {item.descricao}</span>
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon-lg"
-            aria-label="Diminuir quantidade"
-            disabled={item.quantidade <= 1}
-            onClick={() =>
-              definirQuantidade(item.id_produto, item.quantidade - 1)
-            }
-          >
-            <Minus className="size-4" aria-hidden />
-          </Button>
-          <CampoNumero
-            valor={item.quantidade}
-            aoMudar={(v) => definirQuantidade(item.id_produto, v)}
-            ariaLabel={`Quantidade de ${item.descricao}`}
-          />
-          <Button
-            variant="outline"
-            size="icon-lg"
-            aria-label="Aumentar quantidade"
-            onClick={() =>
-              definirQuantidade(item.id_produto, item.quantidade + 1)
-            }
-          >
-            <Plus className="size-4" aria-hidden />
-          </Button>
-        </div>
+        {bloqueado ? (
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {formatarQuantidade(item.quantidade)} pç
+            {item.percentual_desconto > 0
+              ? ` · ${item.percentual_desconto.toLocaleString("pt-BR")}% desc.`
+              : ""}
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="icon-lg"
+                aria-label="Diminuir quantidade"
+                disabled={item.quantidade <= 1}
+                onClick={() =>
+                  definirQuantidade(item.id_produto, item.quantidade - 1)
+                }
+              >
+                <Minus className="size-4" aria-hidden />
+              </Button>
+              <CampoNumero
+                valor={item.quantidade}
+                aoMudar={(v) => definirQuantidade(item.id_produto, v)}
+                ariaLabel={`Quantidade de ${item.descricao}`}
+              />
+              <Button
+                variant="outline"
+                size="icon-lg"
+                aria-label="Aumentar quantidade"
+                onClick={() =>
+                  definirQuantidade(item.id_produto, item.quantidade + 1)
+                }
+              >
+                <Plus className="size-4" aria-hidden />
+              </Button>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Desc.</span>
-          <CampoNumero
-            valor={item.percentual_desconto}
-            aoMudar={(v) => definirDescontoItem(item.id_produto, v)}
-            ariaLabel={`Desconto em ${item.descricao}`}
-            sufixo="%"
-          />
-        </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Desc.</span>
+              <CampoNumero
+                valor={item.percentual_desconto}
+                aoMudar={(v) => definirDescontoItem(item.id_produto, v)}
+                ariaLabel={`Desconto em ${item.descricao}`}
+                sufixo="%"
+              />
+            </div>
+          </>
+        )}
 
         <div className="ml-auto text-right">
           {t.desconto > 0 || t.imposto > 0 ? (

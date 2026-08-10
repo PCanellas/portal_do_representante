@@ -10,6 +10,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -231,7 +232,16 @@ export function ListaClientes({ clientes }: { clientes: ClienteLista[] }) {
                 const alvo = aExcluir;
                 if (!alvo) return;
                 iniciarExclusao(async () => {
-                  await excluirCliente(alvo.id);
+                  const r = await excluirCliente(alvo.id).catch(() => ({
+                    ok: false,
+                  }));
+                  if (!r.ok) {
+                    toast.error("Não foi possível excluir", {
+                      description: "O cliente continua na lista.",
+                    });
+                    return;
+                  }
+                  toast.success(`${alvo.nome} excluído`);
                   setAExcluir(null);
                 });
               }}
