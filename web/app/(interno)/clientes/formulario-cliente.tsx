@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatarTelefone, validarTelefone } from "@/lib/telefone";
-import { salvarCliente, type EstadoCliente } from "./actions";
+import {
+  salvarCliente,
+  type ClienteSalvo,
+  type EstadoCliente,
+} from "./actions";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -17,8 +21,12 @@ type Props = {
     whatsapp: string | null;
     email: string | null;
   };
-  /** Chamado quando a gravacao dá certo — o modal se fecha por aqui. */
-  aoConcluir: () => void;
+  /**
+   * Chamado quando a gravação dá certo — o modal se fecha por aqui.
+   * Recebe o que ficou gravado: quem cadastra a partir do orçamento usa o id
+   * para já deixar o cliente escolhido.
+   */
+  aoConcluir: (cliente?: ClienteSalvo) => void;
   aoCancelar: () => void;
 };
 
@@ -64,9 +72,10 @@ export function FormularioCliente({ cliente, aoConcluir, aoCancelar }: Props) {
 
   // gravou: avisa quem abriu o formulario para fechar
   const salvoEm = estado.salvoEm;
+  const salvo = estado.cliente;
   useEffect(() => {
-    if (salvoEm) aoConcluir();
-  }, [salvoEm, aoConcluir]);
+    if (salvoEm) aoConcluir(salvo);
+  }, [salvoEm, salvo, aoConcluir]);
 
   return (
     <form action={acao} className="space-y-5" noValidate>

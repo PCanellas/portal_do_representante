@@ -29,11 +29,23 @@ const schema = z.object({
 
 export type CamposCliente = { nome: string; whatsapp: string; email: string };
 
+export type ClienteSalvo = {
+  id: string;
+  nome: string;
+  whatsapp: string | null;
+};
+
 export type EstadoCliente = {
   erros?: Partial<Record<keyof CamposCliente, string>>;
   valores?: CamposCliente;
   /** Muda a cada gravacao bem-sucedida: e o sinal para o modal fechar. */
   salvoEm?: number;
+  /**
+   * O que ficou gravado. Quem cadastra a partir do orcamento precisa do id
+   * para ja deixar o cliente escolhido — sem isto ele teria que procurar na
+   * lista o nome que acabou de digitar.
+   */
+  cliente?: ClienteSalvo;
 };
 
 export async function salvarCliente(
@@ -72,14 +84,21 @@ export async function salvarCliente(
     email: dados.data.email || null,
   };
 
-  const { error } = id
-    ? await supabase.from("clientes").update(registro).eq("id", id)
+  const { data, error } = id
+    ? await supabase
+        .from("clientes")
+        .update(registro)
+        .eq("id", id)
+        .select("id, nome, whatsapp")
+        .single()
     : await supabase
         .from("clientes")
         // o RLS exige que o dono seja quem esta gravando
-        .insert({ ...registro, id_representante: user.id });
+        .insert({ ...registro, id_representante: user.id })
+        .select("id, nome, whatsapp")
+        .single();
 
-  if (error) {
+  if (error || !data) {
     return {
       erros: { nome: "Não foi possível salvar. Tente de novo." },
       valores,
@@ -87,9 +106,12 @@ export async function salvarCliente(
   }
 
   revalidatePath("/clientes");
+  // o seletor do orcamento tambem lista clientes, e ele pode ter acabado de
+  // cadastrar um de dentro do orcamento
+  revalidatePath("/orcamentos", "layout");
   // sem redirect: o formulario vive num modal sobre a propria lista, que o
   // revalidatePath acima ja atualiza
-  return { salvoEm: Date.now() };
+  return { salvoEm: Date.now(), cliente: data };
 }
 
 /**
