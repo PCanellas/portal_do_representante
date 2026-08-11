@@ -23,11 +23,17 @@ export default function OfflinePage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-4 px-4 pt-[calc(var(--safe-topo)+1rem)] pb-8">
       <div className="flex items-center gap-3">
+        {/* unoptimized porque esta tela roda sem servidor: o next/image
+            normal pede /_next/image?url=..., que e gerado sob demanda e nao
+            existe sem rede — o logo aparecia quebrado. Assim usa o arquivo
+            cru, que e o mesmo que o service worker guarda no precache. */}
         <Image
           src="/logo-simbolo.png"
           alt=""
           width={40}
           height={40}
+          unoptimized
+          priority
           className="size-9 w-auto"
         />
         <div>

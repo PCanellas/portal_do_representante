@@ -25,21 +25,55 @@
  * nunca viu.
  */
 
-const VERSAO = "v2";
+const VERSAO = "v3";
 const CASCA = `innecco-casca-${VERSAO}`;
 const ESTATICO = `innecco-estatico-${VERSAO}`;
 const OFFLINE = "/offline";
 
 const ESSENCIAIS = [OFFLINE, "/logo-marca.png", "/logo-simbolo.png"];
 
+/**
+ * Os arquivos de JS e CSS que uma pagina precisa, lidos do HTML dela.
+ *
+ * O flight do React vem dentro de <script> com as barras escapadas, e parte
+ * dos pedacos so aparece la — por isso desescapa antes e varre o documento
+ * inteiro, em vez de olhar so os atributos src e href.
+ */
+function estaticosDe(html) {
+  const texto = html.replace(/\\\//g, "/");
+  const achados =
+    texto.match(/\/_next\/static\/[A-Za-z0-9._/-]+\.(?:js|css)/g) || [];
+  return [...new Set(achados)];
+}
+
+/**
+ * Guarda a /offline e tudo que ela precisa para renderizar.
+ *
+ * Guardar so o HTML nao basta, e foi o que quebrou em producao: a pagina
+ * aparecia e a hidratacao morria num pedaco de JS que nunca tinha sido
+ * pedido com internet, entao o erro do Next cobria a tela. Sem sinal nao ha
+ * segunda chance de buscar o que falta — ou esta tudo aqui agora, ou a tela
+ * nao existe.
+ *
+ * Cada arquivo entra por conta propria: com addAll, um 404 num pedaco
+ * derrubaria a instalacao inteira e o app ficaria sem service worker nenhum.
+ */
+async function precachear() {
+  const casca = await caches.open(CASCA);
+  await casca.addAll(ESSENCIAIS);
+
+  const html = await (await casca.match(OFFLINE)).text();
+  const estatico = await caches.open(ESTATICO);
+  await Promise.all(
+    estaticosDe(html).map((url) => estatico.add(url).catch(() => {})),
+  );
+}
+
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
-    caches
-      .open(CASCA)
-      .then((cache) => cache.addAll(ESSENCIAIS))
-      // nao espera a aba antiga fechar: no celular ele raramente fecha o app,
-      // e a correcao ficaria semanas sem chegar
-      .then(() => self.skipWaiting()),
+    // nao espera a aba antiga fechar: no celular ele raramente fecha o app,
+    // e a correcao ficaria semanas sem chegar
+    precachear().then(() => self.skipWaiting()),
   );
 });
 
@@ -109,6 +143,17 @@ self.addEventListener("fetch", (evento) => {
 
   if (request.mode === "navigate") {
     evento.respondWith(paginaOuOffline(request));
+    return;
+  }
+
+  // Guardar no precache nao adianta se o fetch nunca olhar la. O logo estava
+  // guardado desde o inicio e mesmo assim aparecia quebrado sem sinal: ele
+  // nao e navegacao nem /_next/static, entao caia na rede como qualquer
+  // outra coisa e falhava.
+  if (ESSENCIAIS.includes(url.pathname)) {
+    evento.respondWith(
+      caches.match(request).then((guardada) => guardada || fetch(request)),
+    );
     return;
   }
 
