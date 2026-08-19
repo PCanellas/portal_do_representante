@@ -26,7 +26,7 @@ export default async function OrcamentoPage({
     supabase
       .from("orcamentos")
       .select(
-        "id, numero, id_cliente, id_fabricante, percentual_desconto, prazo_pagamento, criado_em",
+        "id, numero, id_cliente, id_fabricante, percentual_desconto, prazo_pagamento, obs, criado_em",
       )
       .eq("id", id)
       .neq("situacao", 2)
@@ -60,6 +60,7 @@ export default async function OrcamentoPage({
     id_fabricante: orcamento.id_fabricante,
     percentual_desconto: Number(orcamento.percentual_desconto),
     prazo_pagamento: orcamento.prazo_pagamento,
+    obs: orcamento.obs ?? "",
     itens: (itens ?? []).map((i) => ({
       id_produto: i.id_produto,
       referencia: i.referencia,

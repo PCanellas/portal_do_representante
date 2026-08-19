@@ -41,6 +41,8 @@ const schema = z.object({
     .number()
     .int()
     .refine(prazoValido, "Escolha o prazo de pagamento"),
+  // texto livre, sem regra do banco a espelhar aqui alem do tamanho
+  obs: z.string().max(2000, "Observação muito longa").default(""),
   itens: z.array(item).min(1, "Adicione ao menos um produto"),
   /**
    * Id escolhido no aparelho, para orçamento que ficou na fila sem sinal.
@@ -177,6 +179,7 @@ export async function salvarOrcamento(
     // chegar aqui e ser enviado; nao ha status escolhido a mao
     status: STATUS_ENVIADO,
     prazo_pagamento: dados.data.prazo_pagamento,
+    obs: dados.data.obs.trim(),
     quantidade_total: totais.quantidadeTotal,
     valor_sub_total: totais.subTotal,
     percentual_desconto: dados.data.percentual_desconto,
@@ -272,6 +275,7 @@ export type DadosPdf = {
   criado_em: string;
   percentual_desconto: number;
   prazo_pagamento: number;
+  obs: string;
   cliente: string;
   fabricante: string;
   representante: { nome: string; whatsapp: string | null; email: string };
@@ -307,7 +311,7 @@ export async function dadosParaPdf(
       supabase
         .from("orcamentos")
         .select(
-          "numero, criado_em, percentual_desconto, prazo_pagamento, clientes(nome), fabricantes(nome)",
+          "numero, criado_em, percentual_desconto, prazo_pagamento, obs, clientes(nome), fabricantes(nome)",
         )
         .eq("id", id)
         .neq("situacao", 2)
@@ -335,6 +339,7 @@ export async function dadosParaPdf(
     criado_em: string;
     percentual_desconto: string;
     prazo_pagamento: number;
+    obs: string;
     clientes: { nome: string } | null;
     fabricantes: { nome: string } | null;
   };
@@ -346,6 +351,7 @@ export async function dadosParaPdf(
       criado_em: cabecalho.criado_em,
       percentual_desconto: Number(cabecalho.percentual_desconto),
       prazo_pagamento: cabecalho.prazo_pagamento,
+      obs: cabecalho.obs,
       cliente: cabecalho.clientes?.nome ?? "—",
       fabricante: cabecalho.fabricantes?.nome ?? "",
       representante: {

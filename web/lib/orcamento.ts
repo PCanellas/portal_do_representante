@@ -16,13 +16,13 @@
 export const STATUS_ENVIADO = "enviado";
 
 /**
- * Prazos de pagamento aceitos, em dias: 30 a 150, de 15 em 15.
+ * Prazos de pagamento aceitos, em dias: a vista (0) ou 30 a 150, de 15 em 15.
  *
  * O banco tem o mesmo check — aqui e para a tela oferecer as opcoes e para
  * o servidor recusar antes de chegar la, com mensagem em portugues em vez
  * de erro de constraint.
  */
-export const PRAZOS_PAGAMENTO = [30, 45, 60, 75, 90, 105, 120, 135, 150];
+export const PRAZOS_PAGAMENTO = [0, 30, 45, 60, 75, 90, 105, 120, 135, 150];
 
 /** O mais comum — orcamento novo ja nasce com ele. */
 export const PRAZO_PADRAO = 30;
@@ -31,8 +31,9 @@ export function prazoValido(dias: number) {
   return PRAZOS_PAGAMENTO.includes(dias);
 }
 
+/** 0 e "a vista", nao "0 dias" — nao ha prazo nenhum para contar. */
 export function formatarPrazo(dias: number) {
-  return `${dias} dias`;
+  return dias === 0 ? "à vista" : `${dias} dias`;
 }
 
 /**

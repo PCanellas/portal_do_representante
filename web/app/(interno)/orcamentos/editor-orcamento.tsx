@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { formatarPreco } from "@/lib/catalogo";
 import {
   calcularItem,
@@ -68,12 +69,14 @@ function assinatura(e: {
   id_cliente: string | null;
   percentual_desconto: number;
   prazo_pagamento: number;
+  obs: string;
   itens: ItemCarrinho[];
 }) {
   return JSON.stringify([
     e.id_cliente,
     e.percentual_desconto,
     e.prazo_pagamento,
+    e.obs,
     e.itens.map((i) => [i.id_produto, i.quantidade, i.percentual_desconto]),
   ]);
 }
@@ -202,6 +205,7 @@ export function EditorOrcamento({
       id_cliente: carrinho.id_cliente!,
       percentual_desconto: carrinho.percentual_desconto,
       prazo_pagamento: carrinho.prazo_pagamento,
+      obs: carrinho.obs,
       itens: carrinho.itens.map((i) => ({
         id_produto: i.id_produto,
         quantidade: i.quantidade,
@@ -447,14 +451,28 @@ export function EditorOrcamento({
                         : "bg-background hover:bg-accent",
                     )}
                   >
-                    {dias}
+                    {dias === 0 ? "À vista" : dias}
                   </button>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                Pagamento em {formatarPrazo(carrinho.prazo_pagamento)}.
+                {carrinho.prazo_pagamento === 0
+                  ? "Pagamento à vista."
+                  : `Pagamento em ${formatarPrazo(carrinho.prazo_pagamento)}.`}
               </p>
             </div>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Observações
+            </h2>
+            <Textarea
+              value={carrinho.obs}
+              onChange={(e) => carrinho.definirObs(e.target.value)}
+              placeholder="Alguma observação para este orçamento…"
+              aria-label="Observações do orçamento"
+            />
           </section>
 
           <Resumo totais={totais} percentual={carrinho.percentual_desconto} />

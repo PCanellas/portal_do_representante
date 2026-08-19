@@ -107,16 +107,18 @@ create table public.orcamentos (
   id_fabricante       uuid not null references public.fabricantes(id),
   status              text not null default 'rascunho'
                         check (status in ('rascunho','enviado','aprovado','recusado')),
-  -- prazo de pagamento em dias: 30 a 150, de 15 em 15
+  -- prazo de pagamento em dias: 0 (a vista) ou 30 a 150, de 15 em 15
   prazo_pagamento     smallint not null default 30
-                        check (prazo_pagamento between 30 and 150
-                               and prazo_pagamento % 15 = 0),
+                        check (prazo_pagamento = 0
+                               or (prazo_pagamento between 30 and 150
+                                   and prazo_pagamento % 15 = 0)),
   quantidade_total    numeric(12,2) not null default 0,
   valor_sub_total     numeric(12,2) not null default 0,
   percentual_desconto numeric(5,2)  not null default 0,
   valor_desconto      numeric(12,2) not null default 0,
   valor_imposto       numeric(12,2) not null default 0,
   valor_total         numeric(12,2) not null default 0,
+  obs                 text not null default '', -- observacao livre do representante
   situacao            smallint not null default 1 check (situacao in (0,1,2)),
   criado_em           timestamptz not null default now(),
   atualizado_em       timestamptz not null default now()

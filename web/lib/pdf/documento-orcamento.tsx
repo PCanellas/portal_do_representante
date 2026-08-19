@@ -127,6 +127,13 @@ const s = StyleSheet.create({
     alignItems: "flex-start",
     gap: 20,
   },
+  obs: {
+    marginTop: 14,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: BORDA,
+  },
+  obsTexto: { fontSize: 8, marginTop: 3, lineHeight: 1.4 },
   caixaTotais: { width: 230 },
   linhaTotal: {
     flexDirection: "row",
@@ -315,6 +322,13 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
               </View>
             </View>
           </View>
+
+          {dados.obs ? (
+            <View style={s.obs}>
+              <Text style={s.rotulo}>Observações</Text>
+              <Text style={s.obsTexto}>{dados.obs}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={s.rodape} fixed>
