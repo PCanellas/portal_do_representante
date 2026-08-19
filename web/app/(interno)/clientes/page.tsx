@@ -10,7 +10,7 @@ export default async function ClientesPage() {
   // o RLS ja limita aos clientes deste representante
   const { data } = await supabase
     .from("clientes")
-    .select("id, nome, whatsapp, email")
+    .select("id, nome, cnpj, whatsapp, email")
     .neq("situacao", 2)
     .order("nome");
 

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { formatarPreco } from "@/lib/catalogo";
@@ -70,6 +71,7 @@ function assinatura(e: {
   percentual_desconto: number;
   prazo_pagamento: number;
   obs: string;
+  transportadora: string;
   itens: ItemCarrinho[];
 }) {
   return JSON.stringify([
@@ -77,6 +79,7 @@ function assinatura(e: {
     e.percentual_desconto,
     e.prazo_pagamento,
     e.obs,
+    e.transportadora,
     e.itens.map((i) => [i.id_produto, i.quantidade, i.percentual_desconto]),
   ]);
 }
@@ -206,6 +209,7 @@ export function EditorOrcamento({
       percentual_desconto: carrinho.percentual_desconto,
       prazo_pagamento: carrinho.prazo_pagamento,
       obs: carrinho.obs,
+      transportadora: carrinho.transportadora,
       itens: carrinho.itens.map((i) => ({
         id_produto: i.id_produto,
         quantidade: i.quantidade,
@@ -461,6 +465,20 @@ export function EditorOrcamento({
                   : `Pagamento em ${formatarPrazo(carrinho.prazo_pagamento)}.`}
               </p>
             </div>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Transportadora
+            </h2>
+            <Input
+              value={carrinho.transportadora}
+              onChange={(e) => carrinho.definirTransportadora(e.target.value)}
+              placeholder="Nome da transportadora"
+              aria-label="Transportadora do orçamento"
+              maxLength={120}
+              className="h-12 text-base"
+            />
           </section>
 
           <section className="space-y-2">

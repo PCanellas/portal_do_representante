@@ -6,6 +6,7 @@ import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatarCnpj, validarCnpj } from "@/lib/cnpj";
 import { formatarTelefone, validarTelefone } from "@/lib/telefone";
 import {
   salvarCliente,
@@ -18,6 +19,7 @@ type Props = {
   cliente?: {
     id: string;
     nome: string;
+    cnpj: string | null;
     whatsapp: string | null;
     email: string | null;
   };
@@ -62,6 +64,12 @@ export function FormularioCliente({ cliente, aoConcluir, aoCancelar }: Props) {
   );
 
   // formata enquanto digita; o servidor guarda so os digitos
+  const [cnpj, setCnpj] = useState(
+    formatarCnpj(estado.valores?.cnpj ?? cliente?.cnpj ?? ""),
+  );
+  const [erroCnpj, setErroCnpj] = useState<string | null>(null);
+  const erroCnpjFinal = erroCnpj ?? estado.erros?.cnpj;
+
   const [whatsapp, setWhatsapp] = useState(
     formatarTelefone(estado.valores?.whatsapp ?? cliente?.whatsapp ?? ""),
   );
@@ -98,6 +106,29 @@ export function FormularioCliente({ cliente, aoConcluir, aoCancelar }: Props) {
           className="h-12 text-base"
         />
         <Erro id="erro-nome" mensagem={estado.erros?.nome} />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cnpj">CNPJ</Label>
+        <Input
+          id="cnpj"
+          name="cnpj"
+          inputMode="numeric"
+          value={cnpj}
+          onChange={(e) => {
+            setCnpj(formatarCnpj(e.target.value));
+            if (erroCnpj) setErroCnpj(null);
+          }}
+          onBlur={(e) => setErroCnpj(validarCnpj(e.target.value))}
+          aria-invalid={!!erroCnpjFinal}
+          aria-describedby={erroCnpjFinal ? "erro-cnpj" : undefined}
+          placeholder="00.000.000/0000-00"
+          className={cn(
+            "h-12 text-base",
+            erroCnpjFinal && "border-destructive",
+          )}
+        />
+        <Erro id="erro-cnpj" mensagem={erroCnpjFinal ?? undefined} />
       </div>
 
       <div className="space-y-2">

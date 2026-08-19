@@ -92,6 +92,7 @@ create table public.clientes (
   id               uuid primary key default gen_random_uuid(),
   id_representante uuid not null references public.representantes(id),
   nome             text not null,
+  cnpj             text, -- so digitos; a tela formata
   whatsapp         text,
   email            text,
   situacao         smallint not null default 1 check (situacao in (0,1,2)),
@@ -119,6 +120,7 @@ create table public.orcamentos (
   valor_imposto       numeric(12,2) not null default 0,
   valor_total         numeric(12,2) not null default 0,
   obs                 text not null default '', -- observacao livre do representante
+  transportadora      text not null default '', -- texto livre, combinada por orcamento
   situacao            smallint not null default 1 check (situacao in (0,1,2)),
   criado_em           timestamptz not null default now(),
   atualizado_em       timestamptz not null default now()

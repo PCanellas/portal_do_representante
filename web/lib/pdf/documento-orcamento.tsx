@@ -292,6 +292,14 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
               <Text style={s.valor}>
                 {formatarPrazo(dados.prazo_pagamento)}
               </Text>
+              {dados.transportadora ? (
+                <>
+                  <Text style={[s.rotulo, { marginTop: 8 }]}>
+                    Transportadora
+                  </Text>
+                  <Text style={s.valor}>{dados.transportadora}</Text>
+                </>
+              ) : null}
             </View>
 
             <View style={s.caixaTotais}>

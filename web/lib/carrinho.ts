@@ -45,6 +45,8 @@ export type EstadoCarrinho = {
   prazo_pagamento: number;
   /** Observacao livre do representante. Vazia quando nao informada. */
   obs: string;
+  /** Transportadora combinada, texto livre. Vazia quando nao informada. */
+  transportadora: string;
 };
 
 type AcoesCarrinho = {
@@ -59,6 +61,7 @@ type AcoesCarrinho = {
   definirDescontoGlobal: (percentual: number) => void;
   definirPrazoPagamento: (dias: number) => void;
   definirObs: (obs: string) => void;
+  definirTransportadora: (transportadora: string) => void;
   sincronizarComCatalogo: (produtos: Produto[]) => void;
 };
 
@@ -72,6 +75,7 @@ const VAZIO: EstadoCarrinho = {
   // 30 dias e o prazo mais comum: ja vem escolhido, ele troca se precisar
   prazo_pagamento: PRAZO_PADRAO,
   obs: "",
+  transportadora: "",
 };
 
 const limitarPercentual = (v: number) =>
@@ -166,6 +170,8 @@ export const useCarrinho = create<EstadoCarrinho & AcoesCarrinho>()(
 
       definirObs: (obs) => set({ obs }),
 
+      definirTransportadora: (transportadora) => set({ transportadora }),
+
       /**
        * Traz preco, imposto e nome das linhas para o que o catalogo diz agora.
        *
@@ -228,6 +234,7 @@ export const useCarrinho = create<EstadoCarrinho & AcoesCarrinho>()(
         percentual_desconto,
         prazo_pagamento,
         obs,
+        transportadora,
       }) => ({
         id,
         numero,
@@ -237,6 +244,7 @@ export const useCarrinho = create<EstadoCarrinho & AcoesCarrinho>()(
         percentual_desconto,
         prazo_pagamento,
         obs,
+        transportadora,
       }),
       // O servidor nao tem localStorage e renderiza o carrinho vazio. Deixar
       // o rehydrate automatico rodar na criacao da store trocaria o conteudo

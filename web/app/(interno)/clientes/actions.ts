@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { digitosCnpj, validarCnpj } from "@/lib/cnpj";
 import { digitosNacionais, validarTelefone } from "@/lib/telefone";
 
 const schema = z.object({
@@ -12,6 +13,12 @@ const schema = z.object({
     .trim()
     .min(2, "Informe o nome do cliente")
     .max(120, "Nome muito longo"),
+
+  // opcional, mas se vier tem que ser um CNPJ valido
+  cnpj: z
+    .string()
+    .trim()
+    .refine((v) => validarCnpj(v) === null, { message: "CNPJ inválido" }),
 
   // opcional, mas se vier tem que ser um numero brasileiro valido
   whatsapp: z
@@ -27,7 +34,12 @@ const schema = z.object({
   ]),
 });
 
-export type CamposCliente = { nome: string; whatsapp: string; email: string };
+export type CamposCliente = {
+  nome: string;
+  cnpj: string;
+  whatsapp: string;
+  email: string;
+};
 
 export type ClienteSalvo = {
   id: string;
@@ -54,6 +66,7 @@ export async function salvarCliente(
 ): Promise<EstadoCliente> {
   const valores: CamposCliente = {
     nome: String(formData.get("nome") ?? ""),
+    cnpj: String(formData.get("cnpj") ?? ""),
     whatsapp: String(formData.get("whatsapp") ?? ""),
     email: String(formData.get("email") ?? ""),
   };
@@ -78,6 +91,7 @@ export async function salvarCliente(
 
   const registro = {
     nome: dados.data.nome,
+    cnpj: dados.data.cnpj ? digitosCnpj(dados.data.cnpj) || null : null,
     whatsapp: dados.data.whatsapp
       ? digitosNacionais(dados.data.whatsapp) || null
       : null,

@@ -43,6 +43,10 @@ const schema = z.object({
     .refine(prazoValido, "Escolha o prazo de pagamento"),
   // texto livre, sem regra do banco a espelhar aqui alem do tamanho
   obs: z.string().max(2000, "Observação muito longa").default(""),
+  transportadora: z
+    .string()
+    .max(120, "Nome da transportadora muito longo")
+    .default(""),
   itens: z.array(item).min(1, "Adicione ao menos um produto"),
   /**
    * Id escolhido no aparelho, para orçamento que ficou na fila sem sinal.
@@ -180,6 +184,7 @@ export async function salvarOrcamento(
     status: STATUS_ENVIADO,
     prazo_pagamento: dados.data.prazo_pagamento,
     obs: dados.data.obs.trim(),
+    transportadora: dados.data.transportadora.trim(),
     quantidade_total: totais.quantidadeTotal,
     valor_sub_total: totais.subTotal,
     percentual_desconto: dados.data.percentual_desconto,
@@ -276,6 +281,7 @@ export type DadosPdf = {
   percentual_desconto: number;
   prazo_pagamento: number;
   obs: string;
+  transportadora: string;
   cliente: string;
   fabricante: string;
   representante: { nome: string; whatsapp: string | null; email: string };
@@ -311,7 +317,7 @@ export async function dadosParaPdf(
       supabase
         .from("orcamentos")
         .select(
-          "numero, criado_em, percentual_desconto, prazo_pagamento, obs, clientes(nome), fabricantes(nome)",
+          "numero, criado_em, percentual_desconto, prazo_pagamento, obs, transportadora, clientes(nome), fabricantes(nome)",
         )
         .eq("id", id)
         .neq("situacao", 2)
@@ -340,6 +346,7 @@ export async function dadosParaPdf(
     percentual_desconto: string;
     prazo_pagamento: number;
     obs: string;
+    transportadora: string;
     clientes: { nome: string } | null;
     fabricantes: { nome: string } | null;
   };
@@ -352,6 +359,7 @@ export async function dadosParaPdf(
       percentual_desconto: Number(cabecalho.percentual_desconto),
       prazo_pagamento: cabecalho.prazo_pagamento,
       obs: cabecalho.obs,
+      transportadora: cabecalho.transportadora,
       cliente: cabecalho.clientes?.nome ?? "—",
       fabricante: cabecalho.fabricantes?.nome ?? "",
       representante: {

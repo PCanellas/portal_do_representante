@@ -31,6 +31,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizar } from "@/lib/catalogo";
+import { formatarCnpj } from "@/lib/cnpj";
 import { formatarTelefone, linkWhatsApp } from "@/lib/telefone";
 import { excluirCliente } from "./actions";
 import { FormularioCliente } from "./formulario-cliente";
@@ -38,6 +39,7 @@ import { FormularioCliente } from "./formulario-cliente";
 export type ClienteLista = {
   id: string;
   nome: string;
+  cnpj: string | null;
   whatsapp: string | null;
   email: string | null;
 };
@@ -58,9 +60,9 @@ export function ListaClientes({ clientes }: { clientes: ClienteLista[] }) {
     const busca = normalizar(termo.trim());
     if (!busca) return clientes;
     return clientes.filter((c) =>
-      normalizar(`${c.nome} ${c.whatsapp ?? ""} ${c.email ?? ""}`).includes(
-        busca,
-      ),
+      normalizar(
+        `${c.nome} ${c.cnpj ?? ""} ${c.whatsapp ?? ""} ${c.email ?? ""}`,
+      ).includes(busca),
     );
   }, [clientes, termo]);
 
@@ -129,6 +131,8 @@ export function ListaClientes({ clientes }: { clientes: ClienteLista[] }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{c.nome}</p>
                   <div className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+                    {c.cnpj ? <span>{formatarCnpj(c.cnpj)}</span> : null}
+                    {c.cnpj && (c.whatsapp || c.email) ? <span>·</span> : null}
                     {c.whatsapp ? (
                       <span>{formatarTelefone(c.whatsapp)}</span>
                     ) : null}
