@@ -234,7 +234,7 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
             </Text>
             <Text style={[s.th, s.centro, { width: COL.quantidade }]}>Qtd</Text>
             <Text style={[s.th, s.direita, { width: COL.desconto }]}>
-              Desc.
+              Desconto
             </Text>
             <Text style={[s.th, s.direita, { width: COL.subtotal }]}>
               Subtotal
