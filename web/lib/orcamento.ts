@@ -78,6 +78,7 @@ export type TotaisOrcamento = {
   descontoItens: number;
   descontoGlobal: number;
   valorDesconto: number; // itens + global, o que vai para o banco
+  totalSemImposto: number; // soma das bases dos itens: bruto - desconto do item, sem imposto
   imposto: number;
   totalComImposto: number; // antes do desconto global
   total: number;
@@ -95,6 +96,7 @@ export function calcularOrcamento(
   let quantidadeTotal = 0;
   let subTotal = 0;
   let descontoItens = 0;
+  let totalSemImposto = 0;
   let imposto = 0;
   let totalComImposto = 0;
 
@@ -103,6 +105,7 @@ export function calcularOrcamento(
     quantidadeTotal = arredondar(quantidadeTotal + item.quantidade);
     subTotal = arredondar(subTotal + t.bruto);
     descontoItens = arredondar(descontoItens + t.desconto);
+    totalSemImposto = arredondar(totalSemImposto + t.base);
     imposto = arredondar(imposto + t.imposto);
     totalComImposto = arredondar(totalComImposto + t.total);
   }
@@ -117,6 +120,7 @@ export function calcularOrcamento(
     descontoItens,
     descontoGlobal,
     valorDesconto: arredondar(descontoItens + descontoGlobal),
+    totalSemImposto,
     imposto,
     totalComImposto,
     total: arredondar(totalComImposto - descontoGlobal),

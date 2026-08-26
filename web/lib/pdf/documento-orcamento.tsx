@@ -314,6 +314,12 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
 
             <View style={s.caixaTotais}>
               <View style={s.linhaTotal}>
+                <Text style={{ color: CINZA }}>Total sem imposto</Text>
+                <Text style={{ fontWeight: 600 }}>
+                  {formatarPreco(totais.totalSemImposto)}
+                </Text>
+              </View>
+              <View style={s.linhaTotal}>
                 <Text style={{ color: CINZA }}>Total com impostos</Text>
                 <Text style={{ fontWeight: 600 }}>
                   {formatarPreco(totais.totalComImposto)}
