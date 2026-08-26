@@ -46,12 +46,13 @@ const BORDA = "#E5E7EB";
 // A descricao fica com a sobra porque e a unica coluna de tamanho variavel.
 const COL = {
   referencia: 52,
-  descricao: 223,
+  descricao: 175,
   preco: 58,
   quantidade: 30,
-  imposto: 54,
-  desconto: 54,
-  total: 64,
+  desconto: 52,
+  subtotal: 56,
+  imposto: 50,
+  total: 62,
 };
 
 const s = StyleSheet.create({
@@ -232,11 +233,14 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
               Unitário
             </Text>
             <Text style={[s.th, s.centro, { width: COL.quantidade }]}>Qtd</Text>
-            <Text style={[s.th, s.direita, { width: COL.imposto }]}>
-              Imposto
-            </Text>
             <Text style={[s.th, s.direita, { width: COL.desconto }]}>
               Desc.
+            </Text>
+            <Text style={[s.th, s.direita, { width: COL.subtotal }]}>
+              Subtotal
+            </Text>
+            <Text style={[s.th, s.direita, { width: COL.imposto }]}>
+              Imposto
             </Text>
             <Text style={[s.th, s.direita, { width: COL.total }]}>Total</Text>
           </View>
@@ -264,11 +268,14 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
                 <Text style={[s.td, s.centro, { width: COL.quantidade }]}>
                   {formatarQuantidade(item.quantidade)}
                 </Text>
-                <Text style={[s.td, s.direita, { width: COL.imposto }]}>
-                  {t.imposto > 0 ? formatarPreco(t.imposto) : "—"}
-                </Text>
                 <Text style={[s.td, s.direita, { width: COL.desconto }]}>
                   {t.desconto > 0 ? `−${formatarPreco(t.desconto)}` : "—"}
+                </Text>
+                <Text style={[s.td, s.direita, { width: COL.subtotal }]}>
+                  {formatarPreco(t.base)}
+                </Text>
+                <Text style={[s.td, s.direita, { width: COL.imposto }]}>
+                  {t.imposto > 0 ? formatarPreco(t.imposto) : "—"}
                 </Text>
                 <Text
                   style={[
@@ -283,9 +290,12 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
             );
           })}
 
-          {/* Subtotal e a soma da coluna Total: quem conferir linha a linha
-              fecha a conta. O desconto aqui e o do orcamento inteiro — os
-              descontos de item ja aparecem na coluna deles. */}
+          {/* "Total com impostos" e a soma da coluna Total: quem conferir
+              linha a linha fecha a conta. O desconto aqui e o do orcamento
+              inteiro — os descontos de item ja aparecem na coluna deles.
+              Nome deliberadamente diferente do "Subtotal" da tabela: la e o
+              item sem imposto, aqui e o pedido inteiro com imposto — o mesmo
+              rotulo nos dois lugares diria coisas diferentes. */}
           <View style={s.totais}>
             <View style={{ flexShrink: 1 }}>
               <Text style={s.rotulo}>Condição de pagamento</Text>
@@ -304,7 +314,7 @@ export function DocumentoOrcamento({ dados }: { dados: DadosPdf }) {
 
             <View style={s.caixaTotais}>
               <View style={s.linhaTotal}>
-                <Text style={{ color: CINZA }}>Subtotal</Text>
+                <Text style={{ color: CINZA }}>Total com impostos</Text>
                 <Text style={{ fontWeight: 600 }}>
                   {formatarPreco(totais.totalComImposto)}
                 </Text>
