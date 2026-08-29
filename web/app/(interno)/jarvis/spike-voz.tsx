@@ -312,8 +312,66 @@ export function SpikeVoz() {
             rotulo="Síntese de voz"
             valor={fala.disponivel ? "disponível" : "indisponível"}
           />
-          <Linha rotulo="Voz escolhida" valor={fala.voz || "nenhuma em pt-BR"} />
         </dl>
+
+        {/* A qualidade da voz manda mais do que qualquer ajuste no codigo, e
+            so o aparelho dele sabe o que tem instalado. Escolher aqui e ouvir
+            na hora e o unico jeito de descobrir qual presta. */}
+        {fala.vozes.length > 0 ? (
+          <div className="space-y-2 rounded-xl border bg-card p-4">
+            <p className="text-xs font-medium">
+              Vozes em português no aparelho ({fala.vozes.length})
+            </p>
+            <ul className="space-y-1.5">
+              {fala.vozes.map((v) => (
+                <li key={v.nome}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fala.definirVoz(v.nome);
+                      falar(
+                        resposta ||
+                          "Referência 1 1 3 0 4. Arandela Linê P. 120 reais.",
+                      );
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg border p-2.5 text-left text-xs transition-colors",
+                      v.nome === fala.vozAtual
+                        ? "border-marca-dourado bg-marca-dourado/10"
+                        : "hover:bg-accent/40",
+                    )}
+                  >
+                    <Volume2 className="size-4 shrink-0" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {v.nome}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {v.idioma}
+                      {v.local ? "" : " · rede"}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <label className="block space-y-1 pt-1">
+              <span className="text-xs text-muted-foreground">
+                Velocidade: {fala.velocidade.toFixed(2)}×
+              </span>
+              <input
+                type="range"
+                min={0.7}
+                max={1.2}
+                step={0.05}
+                value={fala.velocidade}
+                onChange={(e) =>
+                  fala.definirVelocidade(Number(e.target.value))
+                }
+                className="w-full"
+              />
+            </label>
+          </div>
+        ) : null}
 
         {resposta ? (
           <div className="space-y-1.5">
