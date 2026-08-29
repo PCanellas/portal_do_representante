@@ -1,0 +1,249 @@
+"use client";
+
+import { useMemo, useSyncExternalStore } from "react";
+import { Mic, Square, TriangleAlert } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatarPreco } from "@/lib/catalogo";
+import { useBuscaProdutos } from "@/lib/use-busca-produtos";
+import { useCatalogo } from "@/lib/use-catalogo";
+import { useVoz } from "@/lib/use-voz";
+import { cn } from "@/lib/utils";
+
+/**
+ * Spike do Jarvis. Nao e a feature — e o teste que decide se a feature existe.
+ *
+ * Duas perguntas, e as duas precisam de resposta antes de qualquer linha de
+ * codigo com custo:
+ *
+ *   1. A Web Speech API funciona no aparelho dele, no PWA instalado?
+ *   2. O que ela transcreve acha produto na busca que ja temos?
+ *
+ * A segunda e a que costuma ser esquecida. Adianta pouco o microfone abrir se
+ * "MD dois mil duzentos e onze" nao chega em MD-2211.
+ *
+ * O painel de diagnostico existe para o retorno nao ser "nao funcionou": com
+ * o codigo do erro e o modo de exibicao da tela da para saber o que fazer.
+ */
+
+type Ambiente = {
+  seguro: boolean;
+  instalado: boolean;
+  navegador: string;
+};
+
+/**
+ * Guardado entre leituras porque o useSyncExternalStore compara o retorno por
+ * identidade: um objeto novo a cada chamada seria estado sempre "mudando", e
+ * o render nunca pararia. Nada aqui muda no meio da sessao.
+ */
+let ambienteLido: Ambiente | null = null;
+
+function lerAmbiente(): Ambiente | null {
+  if (typeof window === "undefined") return null;
+  const iosInstalado = (navigator as unknown as { standalone?: boolean })
+    .standalone;
+  ambienteLido ??= {
+    seguro: window.isSecureContext,
+    instalado:
+      window.matchMedia("(display-mode: standalone)").matches ||
+      iosInstalado === true,
+    navegador: navigator.userAgent,
+  };
+  return ambienteLido;
+}
+
+const semAssinatura = () => () => {};
+
+export function SpikeVoz() {
+  const voz = useVoz();
+  const { data: catalogo } = useCatalogo();
+  const ambiente = useSyncExternalStore(semAssinatura, lerAmbiente, () => null);
+
+  const produtos = useMemo(() => catalogo?.produtos ?? [], [catalogo]);
+  const achados = useBuscaProdutos(produtos, voz.transcricao);
+  const primeiros = voz.transcricao ? achados.slice(0, 5) : [];
+
+  return (
+    <div className="space-y-5 pb-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">Jarvis</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Teste de microfone. Toque, fale o nome ou a referência de um produto,
+          e veja o que o catálogo encontra.
+        </p>
+      </header>
+
+      {ambiente && !ambiente.seguro ? (
+        <p className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Sem HTTPS o navegador nem oferece o microfone. Abra por{" "}
+          <code>localhost</code> ou pelo endereço publicado.
+        </p>
+      ) : null}
+
+      {ambiente && !voz.disponivel ? (
+        <p className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Este navegador não expõe reconhecimento de voz. É a resposta que o
+          teste procurava — anote o navegador no rodapé desta tela.
+        </p>
+      ) : null}
+
+      <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-6">
+        <Button
+          size="lg"
+          disabled={!voz.disponivel}
+          onClick={voz.ouvindo ? voz.parar : voz.ouvir}
+          className={cn(
+            "h-20 w-20 rounded-full",
+            voz.ouvindo && "animate-pulse bg-destructive hover:bg-destructive",
+          )}
+          aria-label={voz.ouvindo ? "Parar de ouvir" : "Acionar Jarvis"}
+        >
+          {voz.ouvindo ? (
+            <Square className="size-7" aria-hidden />
+          ) : (
+            <Mic className="size-7" aria-hidden />
+          )}
+        </Button>
+        <p className="text-sm text-muted-foreground" role="status">
+          {voz.ouvindo ? "Ouvindo…" : "Toque para falar"}
+        </p>
+      </div>
+
+      {voz.erro ? (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {voz.erro}
+        </p>
+      ) : null}
+
+      {voz.transcricao || voz.parcial ? (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            Transcrição
+          </h2>
+          <p className="rounded-xl border bg-card p-4 text-lg">
+            {voz.transcricao}
+            {voz.parcial ? (
+              <span className="text-muted-foreground">
+                {voz.transcricao ? " " : ""}
+                {voz.parcial}
+              </span>
+            ) : null}
+          </p>
+        </section>
+      ) : null}
+
+      {voz.transcricao ? (
+        <section className="space-y-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              O catálogo encontrou
+            </h2>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {achados.length}{" "}
+              {achados.length === 1 ? "resultado" : "resultados"}
+            </span>
+          </div>
+
+          {primeiros.length === 0 ? (
+            <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+              Nada bateu. Vale anotar a frase exata — é ela que diz se o
+              problema é a transcrição ou a busca.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {primeiros.map((p) => (
+                <li key={p.id} className="rounded-xl border bg-card p-3.5">
+                  <p className="text-sm leading-snug font-medium">
+                    {p.descricao}
+                  </p>
+                  {p.variante ? (
+                    <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
+                      {p.variante}
+                    </p>
+                  ) : null}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {p.referencia}
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {formatarPreco(p.preco_unitario)} un
+                    </span>
+                    {p.situacao !== 1 ? (
+                      <Badge variant="destructive" className="text-[11px]">
+                        Inativo
+                      </Badge>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
+      <section className="space-y-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            Diagnóstico
+          </h2>
+          <Button variant="ghost" size="sm" onClick={voz.limpar}>
+            Limpar
+          </Button>
+        </div>
+
+        <dl className="space-y-1.5 rounded-xl border bg-card p-4 text-xs">
+          <Linha
+            rotulo="Reconhecimento de voz"
+            valor={voz.disponivel ? "disponível" : "indisponível"}
+          />
+          <Linha
+            rotulo="Contexto seguro (HTTPS)"
+            valor={ambiente ? (ambiente.seguro ? "sim" : "não") : "…"}
+          />
+          <Linha
+            rotulo="Modo"
+            valor={
+              ambiente
+                ? ambiente.instalado
+                  ? "PWA instalado"
+                  : "aba do navegador"
+                : "…"
+            }
+          />
+          <Linha
+            rotulo="Catálogo no aparelho"
+            valor={
+              catalogo
+                ? `${catalogo.produtos.length.toLocaleString("pt-BR")} produtos`
+                : "carregando…"
+            }
+          />
+        </dl>
+
+        {voz.eventos.length > 0 ? (
+          <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-3 font-mono text-[11px] leading-relaxed">
+            {voz.eventos.join("\n")}
+          </pre>
+        ) : null}
+
+        {ambiente ? (
+          <p className="text-[11px] break-all text-muted-foreground">
+            {ambiente.navegador}
+          </p>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-muted-foreground">{rotulo}</dt>
+      <dd className="font-medium">{valor}</dd>
+    </div>
+  );
+}
