@@ -5,7 +5,11 @@ import { Mic, Square, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatarPreco } from "@/lib/catalogo";
-import { useBuscaProdutos } from "@/lib/use-busca-produtos";
+import {
+  acharPorReferencia,
+  candidatosReferencia,
+  indexarPorReferencia,
+} from "@/lib/referencia";
 import { useCatalogo } from "@/lib/use-catalogo";
 import { useVoz } from "@/lib/use-voz";
 import { cn } from "@/lib/utils";
@@ -60,17 +64,31 @@ export function SpikeVoz() {
   const { data: catalogo } = useCatalogo();
   const ambiente = useSyncExternalStore(semAssinatura, lerAmbiente, () => null);
 
-  const produtos = useMemo(() => catalogo?.produtos ?? [], [catalogo]);
-  const achados = useBuscaProdutos(produtos, voz.transcricao);
-  const primeiros = voz.transcricao ? achados.slice(0, 5) : [];
+  // o indice so e refeito quando o catalogo muda, nao a cada transcricao
+  const indice = useMemo(
+    () => indexarPorReferencia(catalogo?.produtos ?? []),
+    [catalogo],
+  );
+
+  const achados = useMemo(
+    () => (voz.transcricao ? acharPorReferencia(indice, voz.transcricao) : []),
+    [indice, voz.transcricao],
+  );
+
+  // o que ele TENTOU casar. Quando nada bate, e isto que diz se o problema
+  // foi a transcricao, a separacao em pedacos, ou a referencia mesmo.
+  const candidatos = useMemo(
+    () => (voz.transcricao ? candidatosReferencia(voz.transcricao) : []),
+    [voz.transcricao],
+  );
 
   return (
     <div className="space-y-5 pb-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Jarvis</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Teste de microfone. Toque, fale o nome ou a referência de um produto,
-          e veja o que o catálogo encontra.
+          Teste de microfone. Toque e fale a referência do produto — pode ser
+          uma frase inteira, o resto é ignorado.
         </p>
       </header>
 
@@ -137,48 +155,45 @@ export function SpikeVoz() {
 
       {voz.transcricao ? (
         <section className="space-y-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              O catálogo encontrou
-            </h2>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {achados.length}{" "}
-              {achados.length === 1 ? "resultado" : "resultados"}
-            </span>
-          </div>
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            Referência encontrada
+          </h2>
 
-          {primeiros.length === 0 ? (
+          {achados.length === 0 ? (
             <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-              Nada bateu. Vale anotar a frase exata — é ela que diz se o
-              problema é a transcrição ou a busca.
+              Nenhuma referência do catálogo apareceu na frase. Os pedaços que
+              foram testados estão no diagnóstico, embaixo.
             </p>
           ) : (
             <ul className="space-y-2">
-              {primeiros.map((p) => (
-                <li key={p.id} className="rounded-xl border bg-card p-3.5">
-                  <p className="text-sm leading-snug font-medium">
-                    {p.descricao}
-                  </p>
-                  {p.variante ? (
-                    <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
-                      {p.variante}
-                    </p>
-                  ) : null}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {p.referencia}
-                    </span>
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {formatarPreco(p.preco_unitario)} un
-                    </span>
+              {achados.flatMap(({ referencia, produtos }) =>
+                produtos.map((p) => (
+                  <li
+                    key={`${referencia}-${p.id}`}
+                    className="rounded-xl border bg-card p-3.5"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-mono text-sm font-semibold">
+                        {p.referencia}
+                      </span>
+                      <span className="text-lg font-semibold tabular-nums">
+                        {formatarPreco(p.preco_unitario)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm leading-snug">{p.descricao}</p>
+                    {p.variante ? (
+                      <p className="mt-0.5 text-xs text-marca-azul dark:text-marca-dourado">
+                        {p.variante}
+                      </p>
+                    ) : null}
                     {p.situacao !== 1 ? (
-                      <Badge variant="destructive" className="text-[11px]">
+                      <Badge variant="destructive" className="mt-1.5 text-[11px]">
                         Inativo
                       </Badge>
                     ) : null}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )),
+              )}
             </ul>
           )}
         </section>
@@ -221,7 +236,34 @@ export function SpikeVoz() {
                 : "carregando…"
             }
           />
+          <Linha
+            rotulo="Referências indexadas"
+            valor={indice.size.toLocaleString("pt-BR")}
+          />
         </dl>
+
+        {candidatos.length > 0 ? (
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">
+              Pedaços testados como referência ({candidatos.length}):
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {candidatos.map((c) => (
+                <span
+                  key={c}
+                  className={cn(
+                    "rounded border px-1.5 py-0.5 font-mono text-[11px]",
+                    indice.has(c)
+                      ? "border-transparent bg-marca-navy text-white dark:bg-marca-dourado dark:text-marca-navy"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {voz.eventos.length > 0 ? (
           <pre className="overflow-x-auto rounded-xl border bg-muted/40 p-3 font-mono text-[11px] leading-relaxed">
