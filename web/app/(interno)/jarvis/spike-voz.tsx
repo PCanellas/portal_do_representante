@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
-import { Mic, Square, TriangleAlert } from "lucide-react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { Mic, Square, TriangleAlert, Volume2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatarPreco } from "@/lib/catalogo";
+import { respostaFalada } from "@/lib/fala";
 import {
   acharPorReferencia,
   candidatosReferencia,
   indexarPorReferencia,
 } from "@/lib/referencia";
 import { useCatalogo } from "@/lib/use-catalogo";
+import { useFala } from "@/lib/use-fala";
 import { useVoz } from "@/lib/use-voz";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +89,21 @@ export function SpikeVoz() {
     [achados],
   );
 
+  const { falar, ...fala } = useFala();
+  const resposta = useMemo(
+    () => (voz.transcricao ? respostaFalada(achados) : ""),
+    [voz.transcricao, achados],
+  );
+
+  // Fala quando a resposta muda. O ref evita repetir a cada render — sem ele,
+  // qualquer re-render recomecaria a mesma frase por cima dela mesma.
+  const jaFalado = useRef("");
+  useEffect(() => {
+    if (!resposta || resposta === jaFalado.current) return;
+    jaFalado.current = resposta;
+    falar(resposta);
+  }, [resposta, falar]);
+
   return (
     <div className="space-y-5 pb-6">
       <header>
@@ -117,7 +134,16 @@ export function SpikeVoz() {
         <Button
           size="lg"
           disabled={!voz.disponivel}
-          onClick={voz.ouvindo ? voz.parar : voz.ouvir}
+          onClick={() => {
+            if (voz.ouvindo) {
+              voz.parar();
+              return;
+            }
+            // dentro do gesto, e antes de tudo: e a unica janela em que o
+            // iOS libera audio, e a resposta so vem falar bem depois
+            fala.destravar();
+            voz.ouvir();
+          }}
           className={cn(
             "h-20 w-20 rounded-full",
             voz.ouvindo && "animate-pulse bg-destructive hover:bg-destructive",
@@ -164,11 +190,29 @@ export function SpikeVoz() {
             <h2 className="text-sm font-semibold text-muted-foreground">
               Referência encontrada
             </h2>
-            {achados.length > 0 ? (
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {achados.length} da família
-              </span>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {achados.length > 0 ? (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {achados.length} da família
+                </span>
+              ) : null}
+              {resposta && fala.disponivel ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => (fala.falando ? fala.parar() : falar(resposta))}
+                  aria-label={
+                    fala.falando ? "Parar de falar" : "Ouvir a resposta de novo"
+                  }
+                >
+                  <Volume2
+                    className={cn("size-4", fala.falando && "animate-pulse")}
+                    aria-hidden
+                  />
+                  {fala.falando ? "Parar" : "Ouvir"}
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           {achados.length === 0 ? (
@@ -264,7 +308,21 @@ export function SpikeVoz() {
             rotulo="Referências indexadas"
             valor={indice.chaves.length.toLocaleString("pt-BR")}
           />
+          <Linha
+            rotulo="Síntese de voz"
+            valor={fala.disponivel ? "disponível" : "indisponível"}
+          />
+          <Linha rotulo="Voz escolhida" valor={fala.voz || "nenhuma em pt-BR"} />
         </dl>
+
+        {resposta ? (
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">O que foi falado:</p>
+            <p className="rounded-xl border bg-muted/40 p-3 text-xs">
+              {resposta}
+            </p>
+          </div>
+        ) : null}
 
         {candidatos.length > 0 ? (
           <div className="space-y-1.5">
