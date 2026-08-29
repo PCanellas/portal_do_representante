@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, FileText, Package, Search, Users } from "lucide-react";
+import { ArrowRight, FileText, Mic, Package, Search, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
 function saudacao() {
@@ -84,6 +85,31 @@ export default async function Home() {
           descricao="Cadastro e histórico"
         />
       </div>
+
+      {/* Spike do Jarvis — provisorio, e o unico caminho ate /jarvis: PWA
+          instalado nao tem barra de endereco, entao sem isto o teste nao tem
+          como ser feito no aparelho que interessa. Borda tracejada e o
+          "teste" ao lado do nome sao para nao passar por feature pronta.
+          Quando a feature for decidida, isto sai: vira item da BarraInferior,
+          ou o diretorio /jarvis some junto. */}
+      <Link href="/jarvis" className="block">
+        <Card className="flex-row items-center gap-3 border-dashed p-4 transition-colors hover:bg-accent/40">
+          <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-muted">
+            <Mic className="size-5 text-muted-foreground" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 font-medium">
+              Jarvis
+              <Badge variant="outline" className="text-[11px]">
+                teste
+              </Badge>
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              Consulta por voz — em avaliação
+            </p>
+          </div>
+        </Card>
+      </Link>
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground">
