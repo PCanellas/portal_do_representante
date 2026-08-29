@@ -82,6 +82,11 @@ export function SpikeVoz() {
     [voz.transcricao],
   );
 
+  const candidatosQueCasaram = useMemo(
+    () => new Set(achados.map((a) => a.candidato)),
+    [achados],
+  );
+
   return (
     <div className="space-y-5 pb-6">
       <header>
@@ -155,9 +160,16 @@ export function SpikeVoz() {
 
       {voz.transcricao ? (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">
-            Referência encontrada
-          </h2>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Referência encontrada
+            </h2>
+            {achados.length > 0 ? (
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {achados.length} da família
+              </span>
+            ) : null}
+          </div>
 
           {achados.length === 0 ? (
             <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
@@ -166,11 +178,16 @@ export function SpikeVoz() {
             </p>
           ) : (
             <ul className="space-y-2">
-              {achados.flatMap(({ referencia, produtos }) =>
+              {achados.flatMap(({ referencia, exata, produtos }) =>
                 produtos.map((p) => (
                   <li
                     key={`${referencia}-${p.id}`}
-                    className="rounded-xl border bg-card p-3.5"
+                    className={cn(
+                      "rounded-xl border p-3.5",
+                      exata
+                        ? "border-marca-dourado bg-marca-dourado/10"
+                        : "bg-card",
+                    )}
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="font-mono text-sm font-semibold">
@@ -186,11 +203,18 @@ export function SpikeVoz() {
                         {p.variante}
                       </p>
                     ) : null}
-                    {p.situacao !== 1 ? (
-                      <Badge variant="destructive" className="mt-1.5 text-[11px]">
-                        Inativo
-                      </Badge>
-                    ) : null}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {exata ? null : (
+                        <Badge variant="outline" className="text-[11px]">
+                          variante
+                        </Badge>
+                      )}
+                      {p.situacao !== 1 ? (
+                        <Badge variant="destructive" className="text-[11px]">
+                          Inativo
+                        </Badge>
+                      ) : null}
+                    </div>
                   </li>
                 )),
               )}
@@ -238,7 +262,7 @@ export function SpikeVoz() {
           />
           <Linha
             rotulo="Referências indexadas"
-            valor={indice.size.toLocaleString("pt-BR")}
+            valor={indice.chaves.length.toLocaleString("pt-BR")}
           />
         </dl>
 
@@ -253,7 +277,7 @@ export function SpikeVoz() {
                   key={c}
                   className={cn(
                     "rounded border px-1.5 py-0.5 font-mono text-[11px]",
-                    indice.has(c)
+                    candidatosQueCasaram.has(c)
                       ? "border-transparent bg-marca-navy text-white dark:bg-marca-dourado dark:text-marca-navy"
                       : "text-muted-foreground",
                   )}
