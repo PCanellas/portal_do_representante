@@ -72,7 +72,16 @@ de verdade num link** — recarregar a página não exercita o caminho que quebr
 
 ## Carregar uma tabela de preços nova
 
-O caminho é sempre o mesmo, e o passo 3 nunca se pula.
+Uma vez por máquina, os scripts precisam das próprias dependências (Python
+3.12; no Windows, marque "Add python.exe to PATH" no instalador e desligue os
+aliases `python.exe`/`python3.exe` em Configurações → Aplicativos, senão o
+atalho da Microsoft Store responde no lugar):
+
+```bash
+pip install -r scripts/requirements.txt
+```
+
+Depois, o caminho é sempre o mesmo, e o passo 3 nunca se pula.
 
 ```bash
 # 1. extrair o PDF para CSV

@@ -1,0 +1,22 @@
+# Dependências dos scripts de extração e carga. O app web tem as suas em
+# web/package.json — cada parte do projeto cuida das próprias.
+#
+#     pip install -r scripts/requirements.txt
+#
+# Sem versão fixada de propósito: isto roda algumas vezes por ano, à mão, e
+# uma versão presa envelhece sozinha entre uma carga e outra. As duas travas
+# que protegem a carga são o relatório de extração e a simulação — nenhuma
+# depende da versão da biblioteca. Se uma atualização quebrar a extração,
+# fixe a versão que funcionava aqui e anote o porquê.
+
+# lê o PDF das fábricas por coordenada de coluna — é o que os dois
+# extratores usam para separar preço de descrição
+pdfplumber
+
+# cliente do banco em carregar.py
+supabase
+
+# lê o .env da raiz com SUPABASE_URL e SUPABASE_SERVICE_KEY. O carregar.py
+# funciona sem ele (o import está protegido), mas aí as duas variáveis
+# precisam já estar no ambiente.
+python-dotenv
