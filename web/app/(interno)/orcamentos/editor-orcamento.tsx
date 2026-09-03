@@ -419,16 +419,18 @@ export function EditorOrcamento({
               Editavel que nao salva e pior do que ausente: ele digita a
               observacao na frente do cliente, sai da tela e ela some, sem
               nada em momento nenhum ter avisado. Mesmo criterio da LinhaItem.
-              Os que estao vazios somem: campo em branco num documento
-              fechado so ocupa espaco. */}
+
+              Os quatro aparecem sempre, mesmo vazios. Esconder o vazio
+              parecia limpeza e era perda de informacao: "Transportadora —"
+              diz que ficou em branco; a secao ausente nao diz nada, e ainda
+              deixa a duvida de o app ter perdido o dado. */}
           {bloqueado ? (
             <>
-              {carrinho.percentual_desconto > 0 ? (
-                <SecaoFixa rotulo="Desconto no orçamento">
-                  {formatarPercentual(carrinho.percentual_desconto)} sobre o
-                  total já com impostos.
-                </SecaoFixa>
-              ) : null}
+              <SecaoFixa rotulo="Desconto no orçamento">
+                {carrinho.percentual_desconto > 0
+                  ? `${formatarPercentual(carrinho.percentual_desconto)} sobre o total já com impostos.`
+                  : "Sem desconto."}
+              </SecaoFixa>
 
               <SecaoFixa rotulo="Condição de pagamento">
                 {carrinho.prazo_pagamento === 0
@@ -436,18 +438,18 @@ export function EditorOrcamento({
                   : `Pagamento em ${formatarPrazo(carrinho.prazo_pagamento)}.`}
               </SecaoFixa>
 
-              {carrinho.transportadora ? (
-                <SecaoFixa rotulo="Transportadora">
-                  {carrinho.transportadora}
-                </SecaoFixa>
-              ) : null}
+              <SecaoFixa rotulo="Transportadora">
+                {carrinho.transportadora || <Vazio />}
+              </SecaoFixa>
 
-              {carrinho.obs ? (
-                <SecaoFixa rotulo="Observações">
-                  {/* whitespace-pre-line preserva as quebras que ele digitou */}
+              <SecaoFixa rotulo="Observações">
+                {/* whitespace-pre-line preserva as quebras que ele digitou */}
+                {carrinho.obs ? (
                   <span className="whitespace-pre-line">{carrinho.obs}</span>
-                </SecaoFixa>
-              ) : null}
+                ) : (
+                  <Vazio />
+                )}
+              </SecaoFixa>
             </>
           ) : (
             <>
@@ -645,6 +647,18 @@ export function EditorOrcamento({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/**
+ * Campo que ficou em branco. O travessao e o mesmo marcador que o PDF usa,
+ * que e onde este orcamento vai ser lido do outro lado.
+ */
+function Vazio() {
+  return (
+    <span className="text-muted-foreground" aria-label="não informado">
+      —
+    </span>
   );
 }
 
