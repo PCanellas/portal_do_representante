@@ -29,6 +29,8 @@ type Props = {
   selecionado: string | null;
   aoSelecionar: (id: string) => void;
   invalido?: boolean;
+  /** Orcamento congelado: mostra o cliente, sem deixar trocar. */
+  desabilitado?: boolean;
 };
 
 export function SeletorCliente({
@@ -36,6 +38,7 @@ export function SeletorCliente({
   selecionado,
   aoSelecionar,
   invalido,
+  desabilitado = false,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   const [cadastrando, setCadastrando] = useState(false);
@@ -87,8 +90,10 @@ export function SeletorCliente({
           // e a mensagem de erro do formulario, com role="alert"
           <button
             type="button"
+            disabled={desabilitado}
             className={cn(
-              "flex h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 text-left transition-colors hover:bg-accent/40",
+              "flex h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 text-left transition-colors",
+              desabilitado ? "cursor-default" : "hover:bg-accent/40",
               invalido && "border-destructive",
             )}
           />
@@ -108,8 +113,12 @@ export function SeletorCliente({
             <span className="text-muted-foreground">Selecionar cliente</span>
           )}
         </div>
+        {/* a seta promete um menu; sem poder abrir, ela mente */}
         <ChevronDown
-          className="size-5 shrink-0 text-muted-foreground"
+          className={cn(
+            "size-5 shrink-0 text-muted-foreground",
+            desabilitado && "invisible",
+          )}
           aria-hidden
         />
       </SheetTrigger>

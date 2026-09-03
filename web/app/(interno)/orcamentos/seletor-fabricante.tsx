@@ -23,12 +23,15 @@ type Props = {
   selecionado: string | null;
   /** Recebe a escolha ja confirmada — trocar de empresa esvazia os itens. */
   aoSelecionar: (id: string) => void;
+  /** Orcamento congelado: mostra a empresa, sem deixar trocar. */
+  desabilitado?: boolean;
 };
 
 export function SeletorFabricante({
   fabricantes,
   selecionado,
   aoSelecionar,
+  desabilitado = false,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   const atual = fabricantes.find((f) => f.id === selecionado) ?? null;
@@ -39,7 +42,11 @@ export function SeletorFabricante({
         render={
           <button
             type="button"
-            className="flex h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 text-left transition-colors hover:bg-accent/40"
+            disabled={desabilitado}
+            className={cn(
+              "flex h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 text-left transition-colors",
+              desabilitado ? "cursor-default" : "hover:bg-accent/40",
+            )}
           />
         }
       >
@@ -55,8 +62,12 @@ export function SeletorFabricante({
             <span className="text-muted-foreground">Selecionar empresa</span>
           )}
         </div>
+        {/* a seta promete um menu; sem poder abrir, ela mente */}
         <ChevronDown
-          className="size-5 shrink-0 text-muted-foreground"
+          className={cn(
+            "size-5 shrink-0 text-muted-foreground",
+            desabilitado && "invisible",
+          )}
           aria-hidden
         />
       </SheetTrigger>

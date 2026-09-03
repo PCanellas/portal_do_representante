@@ -32,6 +32,7 @@ import { formatarPreco } from "@/lib/catalogo";
 import {
   calcularItem,
   calcularOrcamento,
+  formatarPercentual,
   formatarPrazo,
   formatarQuantidade,
   PRAZOS_PAGAMENTO,
@@ -341,6 +342,7 @@ export function EditorOrcamento({
             selecionado={carrinho.id_cliente}
             aoSelecionar={carrinho.definirCliente}
             invalido={!!erro && !carrinho.id_cliente}
+            desabilitado={bloqueado}
           />
         </section>
 
@@ -352,6 +354,7 @@ export function EditorOrcamento({
             fabricantes={fabricantes}
             selecionado={carrinho.id_fabricante}
             aoSelecionar={escolherFabricante}
+            desabilitado={bloqueado}
           />
         </section>
       </div>
@@ -412,86 +415,127 @@ export function EditorOrcamento({
 
       {carrinho.itens.length > 0 ? (
         <>
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              Desconto no orçamento
-            </h2>
-            <div className="flex items-center gap-3 rounded-xl border bg-card p-3.5">
-              <CampoNumero
-                valor={carrinho.percentual_desconto}
-                aoMudar={carrinho.definirDescontoGlobal}
-                ariaLabel="Desconto no orçamento em porcentagem"
-                sufixo="%"
-              />
-              <p className="text-xs text-muted-foreground">
-                Aplicado sobre o total já com impostos.
-              </p>
-            </div>
-          </section>
+          {/* Congelado, estes quatro viram texto — nao campo desabilitado.
+              Editavel que nao salva e pior do que ausente: ele digita a
+              observacao na frente do cliente, sai da tela e ela some, sem
+              nada em momento nenhum ter avisado. Mesmo criterio da LinhaItem.
+              Os que estao vazios somem: campo em branco num documento
+              fechado so ocupa espaco. */}
+          {bloqueado ? (
+            <>
+              {carrinho.percentual_desconto > 0 ? (
+                <SecaoFixa rotulo="Desconto no orçamento">
+                  {formatarPercentual(carrinho.percentual_desconto)} sobre o
+                  total já com impostos.
+                </SecaoFixa>
+              ) : null}
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              Condição de pagamento
-            </h2>
-            <div className="space-y-2 rounded-xl border bg-card p-3.5">
-              {/* Dominio fechado: so estes prazos existem, entao botao em vez
-                  de campo aberto — nada de "30d" ou "trinta dias" no banco. */}
-              <div
-                className="grid grid-cols-5 gap-2"
-                role="group"
-                aria-label="Prazo de pagamento em dias"
-              >
-                {PRAZOS_PAGAMENTO.map((dias) => (
-                  <button
-                    key={dias}
-                    type="button"
-                    aria-pressed={carrinho.prazo_pagamento === dias}
-                    aria-label={formatarPrazo(dias)}
-                    onClick={() => carrinho.definirPrazoPagamento(dias)}
-                    className={cn(
-                      "rounded-lg border py-2.5 text-sm font-medium tabular-nums transition-colors",
-                      carrinho.prazo_pagamento === dias
-                        ? "border-transparent bg-marca-navy text-white dark:bg-marca-dourado dark:text-marca-navy"
-                        : "bg-background hover:bg-accent",
-                    )}
-                  >
-                    {dias === 0 ? "À vista" : dias}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
+              <SecaoFixa rotulo="Condição de pagamento">
                 {carrinho.prazo_pagamento === 0
                   ? "Pagamento à vista."
                   : `Pagamento em ${formatarPrazo(carrinho.prazo_pagamento)}.`}
-              </p>
-            </div>
-          </section>
+              </SecaoFixa>
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              Transportadora
-            </h2>
-            <Input
-              value={carrinho.transportadora}
-              onChange={(e) => carrinho.definirTransportadora(e.target.value)}
-              placeholder="Nome da transportadora"
-              aria-label="Transportadora do orçamento"
-              maxLength={120}
-              className="h-12 text-base"
-            />
-          </section>
+              {carrinho.transportadora ? (
+                <SecaoFixa rotulo="Transportadora">
+                  {carrinho.transportadora}
+                </SecaoFixa>
+              ) : null}
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-muted-foreground">
-              Observações
-            </h2>
-            <Textarea
-              value={carrinho.obs}
-              onChange={(e) => carrinho.definirObs(e.target.value)}
-              placeholder="Alguma observação para este orçamento…"
-              aria-label="Observações do orçamento"
-            />
-          </section>
+              {carrinho.obs ? (
+                <SecaoFixa rotulo="Observações">
+                  {/* whitespace-pre-line preserva as quebras que ele digitou */}
+                  <span className="whitespace-pre-line">{carrinho.obs}</span>
+                </SecaoFixa>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  Desconto no orçamento
+                </h2>
+                <div className="flex items-center gap-3 rounded-xl border bg-card p-3.5">
+                  <CampoNumero
+                    valor={carrinho.percentual_desconto}
+                    aoMudar={carrinho.definirDescontoGlobal}
+                    ariaLabel="Desconto no orçamento em porcentagem"
+                    sufixo="%"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Aplicado sobre o total já com impostos.
+                  </p>
+                </div>
+              </section>
+
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  Condição de pagamento
+                </h2>
+                <div className="space-y-2 rounded-xl border bg-card p-3.5">
+                  {/* Dominio fechado: so estes prazos existem, entao botao em
+                      vez de campo aberto — nada de "30d" ou "trinta dias" no
+                      banco. */}
+                  <div
+                    className="grid grid-cols-5 gap-2"
+                    role="group"
+                    aria-label="Prazo de pagamento em dias"
+                  >
+                    {PRAZOS_PAGAMENTO.map((dias) => (
+                      <button
+                        key={dias}
+                        type="button"
+                        aria-pressed={carrinho.prazo_pagamento === dias}
+                        aria-label={formatarPrazo(dias)}
+                        onClick={() => carrinho.definirPrazoPagamento(dias)}
+                        className={cn(
+                          "rounded-lg border py-2.5 text-sm font-medium tabular-nums transition-colors",
+                          carrinho.prazo_pagamento === dias
+                            ? "border-transparent bg-marca-navy text-white dark:bg-marca-dourado dark:text-marca-navy"
+                            : "bg-background hover:bg-accent",
+                        )}
+                      >
+                        {dias === 0 ? "À vista" : dias}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {carrinho.prazo_pagamento === 0
+                      ? "Pagamento à vista."
+                      : `Pagamento em ${formatarPrazo(carrinho.prazo_pagamento)}.`}
+                  </p>
+                </div>
+              </section>
+
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  Transportadora
+                </h2>
+                <Input
+                  value={carrinho.transportadora}
+                  onChange={(e) =>
+                    carrinho.definirTransportadora(e.target.value)
+                  }
+                  placeholder="Nome da transportadora"
+                  aria-label="Transportadora do orçamento"
+                  maxLength={120}
+                  className="h-12 text-base"
+                />
+              </section>
+
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  Observações
+                </h2>
+                <Textarea
+                  value={carrinho.obs}
+                  onChange={(e) => carrinho.definirObs(e.target.value)}
+                  placeholder="Alguma observação para este orçamento…"
+                  aria-label="Observações do orçamento"
+                />
+              </section>
+            </>
+          )}
 
           <Resumo totais={totais} percentual={carrinho.percentual_desconto} />
 
@@ -601,6 +645,22 @@ export function EditorOrcamento({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+/** Campo do orcamento congelado: rotulo e valor, sem nada para tocar. */
+function SecaoFixa({
+  rotulo,
+  children,
+}: {
+  rotulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-semibold text-muted-foreground">{rotulo}</h2>
+      <p className="rounded-xl border bg-card p-3.5 text-sm">{children}</p>
+    </section>
   );
 }
 
