@@ -105,6 +105,25 @@ O formato do CSV e as regras de cada fabricante estão em
 [formato-csv.md](formato-csv.md). Fabricante novo pede um extrator novo; o
 `carregar.py` serve para todos.
 
+Fabricante que publica em mais de um PDF passa todos na mesma chamada, e o
+primeiro vence onde houver repetição — a DNA é assim:
+
+```bash
+python scripts/extrair_dna.py tabelas/dna-geral-agosto2026.pdf \
+                              tabelas/dna-showroom-2026-2027.pdf \
+                              csv/dna-agosto2026.csv
+```
+
+**Cadastrar fabricante é SQL à mão** — não há tela nem script para isso. O
+nome tem que ser idêntico ao que o `--fabricante` receber depois:
+
+```sql
+insert into public.fabricantes (nome, tipo_imposto) values ('DNA', 'IPI');
+```
+
+O `tipo_imposto` (`ST` ou `IPI`) é só rótulo de tela e não entra em cálculo
+nenhum: a alíquota que vale é a do CSV, produto por produto.
+
 Credenciais dos scripts vêm de um `.env` na raiz (ver `.env.exemplo`). A
 `SUPABASE_SERVICE_KEY` ignora RLS por completo: só nos scripts, nunca no app.
 

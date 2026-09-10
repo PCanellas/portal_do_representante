@@ -81,6 +81,42 @@ um buraco na sequência denuncia a fatia perdida antes de qualquer coisa ir ao b
   repetir código — `6535` é o `Pendente Ballon M` da página 38 e também o tricô
   náutico vendido por metro.
 
+### DNA
+- **Duas tabelas, um catálogo.** A DNA publica a geral e a de showroom em PDFs
+  separados, e boa parte se repete: 104 códigos aparecem nos dois, com preço,
+  folha de ouro e descrição idênticos. O extrator recebe os dois na mesma
+  chamada, e onde repete **o primeiro vence**.
+- **Página deslocada.** As páginas do segundo PDF continuam a numeração do
+  primeiro (o showroom de 7 páginas vira 43-49). Sem isso as páginas 1-7 dos
+  dois colidiriam e a checagem de buraco na sequência perderia o sentido.
+  Consequência esperada: as páginas cujos produtos todos já vieram do primeiro
+  PDF ficam sem nenhuma linha, e a carga avisa. Nas cargas de agosto/2026 são
+  as 46 e 47 — conferido uma a uma.
+- Imposto: **IPI por produto**, 9,75% em todas as linhas menos uma. A `P0501`
+  vem com a célula vazia nos dois PDFs, e entra com 9,75% — omissão da fábrica,
+  não alíquota zero.
+- A coluna **ST** do PDF diz "Verificar índice da região". É nota, não
+  alíquota: quem vale é o IPI.
+- Referência: **sem formato único** — `A0209`, `ARA-003-ROCHA`,
+  `ALQU-50-1`, `GAROA-RT100X60-2,0M`, `ESPECIAL-L1003-4`. O extrator copia a
+  célula de código como está, sem validar por padrão.
+- **Folha de ouro vira variante `FOLHA DE OURO`**, e só quando o preço dela
+  está **impresso**: 390 dos 542 produtos. Nos outros 152 a sexta coluna ou
+  não é folha de ouro (naquelas páginas ela é `OBS`) ou está vazia — a LINHA
+  EISEN inteira é assim. **Não se calcula o que falta**: entre os preços
+  impressos a folha de ouro é +15% em 382 casos, +0% em 6 e −30% em 1, então a
+  regra não vale nem dentro do que a fábrica publicou, e um valor calculado
+  entraria no PDF do cliente como se fosse preço de fábrica.
+- `detalhes` recebe **só a nota da coluna `OBS`** ("ATÉ 2M DE CABO NÃO ALTERA
+  VALOR"). Peso e acabamento ficam fora.
+- **Página de continuação não repete o cabeçalho.** Sete páginas da geral
+  (9, 17, 26, 32, 34, 36, 37) seguem a tabela da anterior sem cabeçalho
+  nenhum. O papel da sexta coluna vale até o próximo cabeçalho, não até o fim
+  da página — tratar por página descartava 120 produtos em silêncio.
+- **As dez colunas são lidas por posição, nunca por nome.** Na página 4 dos
+  dois PDFs o cabeçalho da coluna de descrição vem impresso "CÓDIGO DO
+  PRODUTO"; mapear por nome faz o código daquelas linhas virar a descrição.
+
 ## Exemplos
 
 **Luminatti** (IPI por produto, preço da região escolhida):
@@ -92,17 +128,32 @@ LM3829;;LUMINARIA DE LED 1 SPOT DE EMBUTIR DIRECIONÁVEL 2W 3000K PT/PT;0.00;0;2
 LM3223;;PERFIL LIGHT MINI DE SOBREPOR, INTERNO ATÉ 5,7MM, BC/BC, TAM: 2M;14.70;0;22
 ```
 
-**Metal Domado** (ST constante, variante quando o preço muda por cor):
+**Metal Domado** (ST constante, variante quando o preço muda por cor). A
+alíquota vai como **número**: a coluna é numérica e o carregador rejeita o CSV
+inteiro se encontrar a sigla `ST` no lugar do valor.
 
 ```csv
 referencia;variante;descricao;preco_unitario;porcentagem_imposto;pagina
-9080;;Arandela Linê P;347.00;ST;1
-6609C;Travertino Bruto, Kouros e Verde Guatemala;Arandela Bolle Rock Axs M;924.95;ST;7
-6609C;Bronze Armani;Arandela Bolle Rock Axs M;1188.65;ST;7
-5522P;;Arandela Retrô Sextavada Pequena;637.61;ST;21
-5522P.C05;;Embalagem Combo 05 un - Arandela Retrô Sextavada Pequena;410.90;ST;21
-5522P.C10;;Embalagem Combo 10 un - Arandela Retrô Sextavada Pequena;367.90;ST;21
+9080;;Arandela Linê P;347.00;16.60;1
+6609C;Travertino Bruto, Kouros e Verde Guatemala;Arandela Bolle Rock Axs M;924.95;16.60;7
+6609C;Bronze Armani;Arandela Bolle Rock Axs M;1188.65;16.60;7
+5522P;;Arandela Retrô Sextavada Pequena;637.61;16.60;21
+5522P.C05;;Embalagem Combo 05 un - Arandela Retrô Sextavada Pequena;410.90;16.60;21
+5522P.C10;;Embalagem Combo 10 un - Arandela Retrô Sextavada Pequena;367.90;16.60;21
 ```
+
+**DNA** (folha de ouro como variante, só onde o preço está impresso):
+
+```csv
+referencia;variante;descricao;detalhes;preco_unitario;porcentagem_imposto;pagina
+ARA-003-ROCHA;;ARANDELA 20CM - ROCHA SELENITA - FITA DE LED 3000K - 6W;;724.50;9.75;1
+ARA-003-ROCHA;FOLHA DE OURO;ARANDELA 20CM - ROCHA SELENITA - FITA DE LED 3000K - 6W;;833.18;9.75;1
+EISEN-001-ARA;;ARANDELA 20 X 20CM - 6W - CHAPA MARTELADA;;694.15;9.75;7
+ALR-70-1-FIX;;ALIANÇA RED. Ø70 CM - 3000K - 28W (1,50M DE ALTURA) - FIX NO GESSO;ATÉ 2M DE CABO NÃO ALTERA VALOR;1746.14;9.75;28
+```
+
+A `EISEN-001-ARA` entra sem variante porque a célula de folha de ouro dela
+está vazia no PDF — é o caso dos 152.
 
 ## Contagens de referência
 
@@ -111,7 +162,14 @@ Servem para conferir a cobertura de cada extração:
 | fabricante | tabela | produtos esperados |
 |---|---|---|
 | Luminatti | julho/2026 | 1.635 (44 páginas) |
+| Luminatti | agosto/2026 | 1.718 (42 páginas) |
 | Metal Domado | julho/2026 | 989, sendo 772 base + 217 combos (77 páginas) |
+| DNA | agosto/2026 | 932 linhas, sendo 542 base + 390 folha de ouro (42 + 7 páginas) |
+
+A DNA fecha assim: **1.129 preços impressos** nos dois PDFs (646 base + 483
+folha de ouro), menos **197 de códigos repetidos entre eles** (104 base + 93
+folha de ouro), dão as 932 linhas. Cada linha do CSV foi conferida contra um
+preço impresso — nenhuma sobra.
 
 Divergência não significa erro automático — a fábrica pode ter incluído ou
 retirado itens. Mas divergência grande sem explicação é sinal de extração
