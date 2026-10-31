@@ -76,6 +76,15 @@ um buraco na sequência denuncia a fatia perdida antes de qualquer coisa ir ao b
 - Peça com duas versões de cúpula abre um nome cheio e, sob ele, dois
   sub-rótulos com código próprio. A descrição junta os dois:
   `Arandela Thomas Cup Cúpula Pequena` (`5985CP`).
+- **Código errado no PDF se corrige no extrator, nunca no CSV** — a
+  reextração seguinte desfaria a edição à mão. O dicionário `CORRECOES` do
+  `extrair_metaldomado.py` guarda o par impresso (código, nome da peça) e a
+  referência que vale no pedido, e só entra ali o que o representante
+  confirmou. Em outubro/2026 a página 3 imprime `9082` em duas peças e pula o
+  `9084`: o `Pendente Linê Vertical M` é `9083` e o `Pendente Linê Vertical
+  G`, impresso `9083`, é `9084` — com a troca a sequência fecha de 9077 a
+  9088. Correção que não acha peça aparece no relatório: ou a peça não está
+  naquela tabela, ou a fábrica já arrumou e a entrada pode sair.
 - A página de **acessórios** (cabo, corrente, canopla, esfera de vidro) fica
   **fora da carga**: a numeração dela é independente da dos produtos e chega a
   repetir código — `6535` é o `Pendente Ballon M` da página 38 e também o tricô
@@ -164,6 +173,7 @@ Servem para conferir a cobertura de cada extração:
 | Luminatti | julho/2026 | 1.635 (44 páginas) |
 | Luminatti | agosto/2026 | 1.718 (42 páginas) |
 | Metal Domado | julho/2026 | 989, sendo 772 base + 217 combos (77 páginas) |
+| Metal Domado | outubro/2026 | 779, sendo 589 base + 190 combos (61 páginas) |
 | DNA | agosto/2026 | 932 linhas, sendo 542 base + 390 folha de ouro (42 + 7 páginas) |
 
 A DNA fecha assim: **1.129 preços impressos** nos dois PDFs (646 base + 483

@@ -74,6 +74,20 @@ NAO_E_VARIANTE = ('RABICHO', 'ACRÉSCIMO', 'DE R$', 'VIDROS:', 'Informar')
 # pagina 52 imprime 'L/G' e a 55 imprime 'G/L'.
 DUAS_LAMPADAS = re.compile(r'^(\d+)([A-Za-z]+)/([A-Za-z]+)$')
 
+# Codigo errado no PDF, corrigido com a fabrica. A chave e o par impresso
+# (codigo, nome da peca) e o valor e a referencia que vale no pedido. So entra
+# aqui o que o representante confirmou: codigo nao se adivinha.
+#
+# Outubro/2026, pagina 3: a LINHA LINE sai 9082, 9082, 9083, 9085. O 9082
+# repetido faria o carregar.py recusar o arquivo inteiro, e o 9084 nao aparece
+# em peca nenhuma — o pulo na sequencia e o proprio erro. Confirmado com a
+# fabrica: o 'Pendente Line Vertical M' e 9083, e o 'Pendente Line Vertical G',
+# impresso 9083, e 9084. Com isso a sequencia fecha de 9077 a 9088.
+CORRECOES = {
+    (u'9082', u'Pendente Linê Vertical M'): u'9083',
+    (u'9083', u'Pendente Linê Vertical G'): u'9084',
+}
+
 
 def limpar(txt):
     """normaliza espacos; preserva acentuacao e caixa"""
@@ -397,6 +411,32 @@ def extrair(caminho_pdf):
     return produtos, anomalias
 
 
+def aplicar_correcoes(produtos):
+    """
+    Troca o codigo impresso errado pela referencia que vale no pedido (ver
+    CORRECOES).
+
+    Roda antes de resolver_repetidos, e e o que impede que a peca de codigo
+    repetido seja descartada como conflito.
+
+    Devolve tambem as correcoes que nao casaram com peca nenhuma. Elas sao a
+    defesa contra a correcao esquecida: quando a fabrica arrumar o codigo, a
+    entrada aqui para de encontrar peca, o relatorio avisa e ela sai do
+    dicionario. Sem isso uma correcao antiga sobreviveria calada por tabelas
+    inteiras. O aviso tambem aparece ao reextrair uma tabela antiga, em que a
+    peca ainda nao existia — e por isso ele pede conferencia em vez de
+    mandar apagar.
+    """
+    usadas = set()
+    for p in produtos:
+        chave = (p['referencia'], p['descricao'])
+        nova = CORRECOES.get(chave)
+        if nova:
+            p['referencia'] = nova
+            usadas.add(chave)
+    return produtos, sorted(usadas), sorted(set(CORRECOES) - usadas)
+
+
 def resolver_repetidos(produtos, anomalias):
     """
     Tira do CSV a chave (referencia, variante) repetida, que o carregar.py
@@ -409,12 +449,11 @@ def resolver_repetidos(produtos, anomalias):
       preco, descricao e ficha iguais. Fica a primeira, em silencio — nao ha
       informacao a perder.
 
-    - **Conflito.** Mesmo codigo em pecas diferentes. Em outubro/2026 a
-      pagina 3 imprime 9082 na 'Arandela Linê G' (R$ 653,29) e tambem no
-      'Pendente Linê Vertical M' (R$ 703,84), numa sequencia que vai 9082,
-      9083, 9085 — esta faltando um numero, e em julho o 9082 era so da
-      arandela. Erro da fabrica, nao da extracao. Fica a primeira peca e o
-      relatorio aponta: quem resolve e a Metal Domado.
+    - **Conflito.** Mesmo codigo em pecas diferentes: erro da fabrica, nao da
+      extracao. Fica a primeira peca, e o relatorio aponta a segunda para
+      confirmar com a Metal Domado. Confirmado o codigo certo, a peca entra em
+      CORRECOES e deixa de chegar aqui — foi o caminho do 9082 que a pagina 3
+      de outubro/2026 imprimia em duas pecas.
     """
     vistos, saida, conflitos = {}, [], []
 
@@ -446,6 +485,7 @@ def main():
     entrada, saida = sys.argv[1], sys.argv[2]
 
     produtos, anomalias = extrair(entrada)
+    produtos, corrigidos, correcoes_orfas = aplicar_correcoes(produtos)
     produtos, conflitos = resolver_repetidos(produtos, anomalias)
 
     campos = ['referencia', 'variante', 'descricao', 'detalhes',
@@ -468,8 +508,17 @@ def main():
     print('  com ficha tecnica : %d' % sum(1 for p in produtos if p['detalhes']))
     print('preco zero          : %d' % len(zerados))
     print('chaves repetidas    : %d' % repetidos)
+    print('codigo corrigido    : %d' % len(corrigidos))
     print('paginas com produto : %d' % len({p['pagina'] for p in produtos}))
     print('arquivo             : %s' % saida)
+
+    if correcoes_orfas:
+        print('\nCORRECAO QUE NAO ACHOU PECA (%d) — ou a peca nao esta'
+              ' nesta tabela, ou a fabrica arrumou o codigo; neste caso,'
+              ' confira e tire de CORRECOES:'
+              % len(correcoes_orfas))
+        for codigo, descricao in correcoes_orfas:
+            print('  %-8s %s' % (codigo, descricao))
 
     if conflitos:
         print('\nCODIGO REPETIDO EM PECAS DIFERENTES (%d) — erro da fabrica,'
