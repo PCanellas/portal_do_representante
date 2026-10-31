@@ -119,6 +119,7 @@ nome tem que ser idêntico ao que o `--fabricante` receber depois:
 
 ```sql
 insert into public.fabricantes (nome, tipo_imposto) values ('DNA', 'IPI');
+insert into public.fabricantes (nome, tipo_imposto) values ('Due Luci', 'ST');
 ```
 
 O `tipo_imposto` (`ST` ou `IPI`) é só rótulo de tela e não entra em cálculo

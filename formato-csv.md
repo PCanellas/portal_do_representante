@@ -126,6 +126,53 @@ um buraco na sequência denuncia a fatia perdida antes de qualquer coisa ir ao b
   dois PDFs o cabeçalho da coluna de descrição vem impresso "CÓDIGO DO
   PRODUTO"; mapear por nome faz o código daquelas linhas virar a descrição.
 
+### Due Luci
+- Imposto: **ST em todas as peças**, alíquota única de **16,60%** — mesma
+  regra da Metal Domado. O rodapé da página 20 diz "Sem IPI, Substituição
+  Tributária conforme estado".
+- **Cada linha da grade é uma família, não um produto.** A célula de código
+  traz N códigos, a de preço N preços e a de descrição N sub-rótulos, que
+  são o que distingue um irmão do outro (`386DCU` interruptor na cúpula,
+  `386DCA` na canopla, `386DRA` no rabicho). O sub-rótulo vira a variante.
+- **A célula se lê caractere por caractere**, nunca pelo texto que o
+  `extract_tables()` devolve. O PDF completa cada linha com centenas de
+  espaços que invadem a coluna vizinha, e o agrupador do pdfplumber
+  intercala esses espaços com as letras de baixo: 390 linhas — 15% da
+  tabela, preços inclusive — saem como `P e n d e n t e V i d r o`. Lendo os
+  caracteres e descartando o que for só espaço, não sobra nenhuma.
+- **Código e preço casam pela ordem; o sub-rótulo, pela semelhança.** Alinhar
+  por altura não funciona: a coluna de descrição é encostada no topo da
+  célula e as de código e preço são centralizadas, cada uma com o seu
+  espaçamento (11,2pt contra 10,1pt). O sub-rótulo sai dos **N últimos**
+  parágrafos, e só cede quando outra janela de N consecutivos for
+  nitidamente mais parecida consigo mesma — é o caso das peças 410 a 413 e
+  das 810 a 817, em que a última linha ("Acompanha 4m de Cabo PP...") é
+  nota comum a todos os códigos. São 12 linhas, e o relatório lista uma a
+  uma para conferência.
+- **A família entra como prefixo da descrição** (`PIX DIREITA E27 - Arandela
+  Articulada Direita - Alumínio`). Ela está numa coluna própria e é o que
+  distingue as dezenas de "Arandela Articulada" do catálogo; sem ela o nome
+  no orçamento fica ambíguo. Em 46 das 514 linhas a família já aparece no
+  nome e o prefixo repete — preço aceitável pelas outras 468.
+- **Família cotada por um preço só** vira N referências pelo mesmo valor. São
+  14 linhas da grade, 16 referências a mais que preços impressos.
+- Quando os sub-rótulos ocupam a descrição inteira **não há nome comum**: o
+  rótulo de cada código é o nome dele e a variante fica vazia. É a BOLA 10,
+  em que `2314B` é "Pendente Vidro Bco" e `2314C` é "Pendente Vidro
+  Cristal" — dois produtos, não duas variantes de um.
+- **Código único não tem variante**: sem irmão não há o que distinguir, e o
+  que vem depois do nome é ficha técnica.
+- Referência: **sempre começa com dígito** — `386DCU`, `400-P`, `4233`,
+  `811/5`, `2314B`. É o que separa produto de acessório.
+- A parte de **acessórios** da página 20 (cabo PP, deslocador, trava cabo)
+  fica **fora da carga**, como a da Metal Domado: ali a grade troca de
+  sentido — o código (61, 62P, 63) vai para a coluna da família e o nome
+  para a coluna do código — e o cabo é cotado por metro, por fração e por
+  rolo, três preços para um item. São 5 quadros e 7 preços.
+- **Quadro repetido idêntico sai em silêncio.** A página 18 imprime duas
+  vezes o mesmo `2503`, com a mesma foto, a mesma descrição e os mesmos
+  R$ 189,00. Código repetido em peças **diferentes** é outra coisa, e esse
+  o relatório aponta.
 ## Exemplos
 
 **Luminatti** (IPI por produto, preço da região escolhida):
@@ -164,6 +211,18 @@ ALR-70-1-FIX;;ALIANÇA RED. Ø70 CM - 3000K - 28W (1,50M DE ALTURA) - FIX NO GES
 A `EISEN-001-ARA` entra sem variante porque a célula de folha de ouro dela
 está vazia no PDF — é o caso dos 152.
 
+**Due Luci** (ST constante, sub-rótulo como variante, família no nome):
+
+```csv
+referencia;variante;descricao;detalhes;preco_unitario;porcentagem_imposto;pagina
+386DCU;Interruptor na Cúpula;PIX DIREITA E27 - Arandela Articulada Direita - Alumínio;C31 x P28 x A24cm - Cúpula Ø5,3/Ø17 x A16cm;256.00;16.60;1
+386DRA;Interruptor no Rabicho;PIX DIREITA E27 - Arandela Articulada Direita - Alumínio;C31 x P28 x A24cm - Cúpula Ø5,3/Ø17 x A16cm;271.00;16.60;1
+2314B;;BOLA 10 - Pendente Vidro Bco Ø10 cm - 1 x G9 Led;;231.00;16.60;17
+2314C;;BOLA 10 - Pendente Vidro Cristal Ø10 cm - 1 x G9 Led;;231.00;16.60;17
+```
+
+As duas BOLA saem pelo mesmo preço porque a página 17 imprime um valor só
+para o par, e sem variante porque cada código tem o seu próprio nome.
 ## Contagens de referência
 
 Servem para conferir a cobertura de cada extração:
@@ -175,12 +234,17 @@ Servem para conferir a cobertura de cada extração:
 | Metal Domado | julho/2026 | 989, sendo 772 base + 217 combos (77 páginas) |
 | Metal Domado | outubro/2026 | 779, sendo 589 base + 190 combos (61 páginas) |
 | DNA | agosto/2026 | 932 linhas, sendo 542 base + 390 folha de ouro (42 + 7 páginas) |
+| Due Luci | 2026/3 | 514 linhas, 514 referências, 177 com variante (20 páginas) |
 
 A DNA fecha assim: **1.129 preços impressos** nos dois PDFs (646 base + 483
 folha de ouro), menos **197 de códigos repetidos entre eles** (104 base + 93
 folha de ouro), dão as 932 linhas. Cada linha do CSV foi conferida contra um
 preço impresso — nenhuma sobra.
 
+A Due Luci fecha assim: **506 preços impressos** na grade, menos **7 de
+acessórios**, mais **16 de família cotada por um preço só**, menos **1
+quadro repetido**, dão as 514 linhas. O extrator refaz essa conta página a
+página a cada rodada e avisa em qual delas não fecha.
 Divergência não significa erro automático — a fábrica pode ter incluído ou
 retirado itens. Mas divergência grande sem explicação é sinal de extração
 incompleta, e o diff contra o banco mostra exatamente quais linhas mudaram.
