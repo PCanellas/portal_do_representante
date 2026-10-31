@@ -293,7 +293,9 @@ def extrair_blocos(pagina, n_pagina, anomalias, anterior):
             precos_combo[cod] = min(perto, key=lambda p: abs(p[0] - topo_c))
 
         usados = set(id(p) for p in precos_combo.values())
-        precos_base = [p for p in precs if id(p) not in usados]
+        # de cima para baixo: o pareamento com os codigos depende da ordem
+        precos_base = sorted((p for p in precs if id(p) not in usados),
+                             key=lambda p: p[0])
 
         # a peca continuada ja foi gravada na pagina anterior; aqui so sobram
         # os combos dela
@@ -331,6 +333,18 @@ def extrair_blocos(pagina, n_pagina, anomalias, anterior):
         if duas and len(precos_base) == 2:
             numero, primeira, segunda = duas.groups()
             referencias = [numero + primeira, numero + segunda]
+        elif len(base) > 1 and len(base) == len(precos_base):
+            # Em outubro/2026 a fabrica mudou a apresentacao desta peca: os
+            # dois codigos, que vinham juntos com barra ('5590G/L', o caso do
+            # DUAS_LAMPADAS acima), passaram a sair em celulas separadas —
+            # '9090' e '9090S' em linhas seguidas, '50204G' e '50204L'. Cada
+            # codigo fica com o preco da sua propria linha, de cima para
+            # baixo, que e a mesma ordem que a barra ja definia.
+            #
+            # Sem isto o segundo codigo sumia do CSV e o primeiro saia
+            # duplicado carregando os dois precos — e chave repetida faz o
+            # carregar.py recusar o arquivo inteiro.
+            referencias = [c for _, c in sorted(base, key=lambda c: c[0])]
         else:
             referencias = [referencia] * len(precos_base)
             if len(precos_base) > 1 and not rots:
@@ -383,6 +397,48 @@ def extrair(caminho_pdf):
     return produtos, anomalias
 
 
+def resolver_repetidos(produtos, anomalias):
+    """
+    Tira do CSV a chave (referencia, variante) repetida, que o carregar.py
+    recusa — e recusa o arquivo inteiro, nao so a linha.
+
+    Dois casos, e so um deles e nosso:
+
+    - **Repeticao identica.** O catalogo lista a mesma peca em duas secoes:
+      em outubro/2026 o 9010 sai na pagina 36 e de novo na 59, a de IP, com
+      preco, descricao e ficha iguais. Fica a primeira, em silencio — nao ha
+      informacao a perder.
+
+    - **Conflito.** Mesmo codigo em pecas diferentes. Em outubro/2026 a
+      pagina 3 imprime 9082 na 'Arandela Linê G' (R$ 653,29) e tambem no
+      'Pendente Linê Vertical M' (R$ 703,84), numa sequencia que vai 9082,
+      9083, 9085 — esta faltando um numero, e em julho o 9082 era so da
+      arandela. Erro da fabrica, nao da extracao. Fica a primeira peca e o
+      relatorio aponta: quem resolve e a Metal Domado.
+    """
+    vistos, saida, conflitos = {}, [], []
+
+    for p in produtos:
+        chave = (p['referencia'], p['variante'])
+        antes = vistos.get(chave)
+
+        if antes is None:
+            vistos[chave] = p
+            saida.append(p)
+            continue
+
+        igual = (antes['preco_unitario'] == p['preco_unitario']
+                 and antes['descricao'] == p['descricao'])
+        if igual:
+            continue
+
+        conflitos.append((p['pagina'], p['referencia'],
+                          antes['descricao'], antes['preco_unitario'],
+                          p['descricao'], p['preco_unitario']))
+
+    return saida, conflitos
+
+
 def main():
     if len(sys.argv) != 3:
         print(__doc__)
@@ -390,6 +446,7 @@ def main():
     entrada, saida = sys.argv[1], sys.argv[2]
 
     produtos, anomalias = extrair(entrada)
+    produtos, conflitos = resolver_repetidos(produtos, anomalias)
 
     campos = ['referencia', 'variante', 'descricao', 'detalhes',
               'preco_unitario', 'porcentagem_imposto', 'pagina']
@@ -413,6 +470,14 @@ def main():
     print('chaves repetidas    : %d' % repetidos)
     print('paginas com produto : %d' % len({p['pagina'] for p in produtos}))
     print('arquivo             : %s' % saida)
+
+    if conflitos:
+        print('\nCODIGO REPETIDO EM PECAS DIFERENTES (%d) — erro da fabrica,'
+              ' e preciso confirmar com ela:' % len(conflitos))
+        for pagina, ref, d1, p1, d2, p2 in conflitos:
+            print('  pag %-3d | %s' % (pagina, ref))
+            print('          ficou: %-38s R$ %s' % (d1[:38], p1))
+            print('          saiu : %-38s R$ %s' % (d2[:38], p2))
 
     if anomalias:
         print('\nlinhas para conferencia manual (%d):' % len(anomalias))
